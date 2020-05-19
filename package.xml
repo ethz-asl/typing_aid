@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>asl-typing-8</name>
+  <name>typing-8</name>
   <version>0.0.0</version>
   <description>Franka controller for typing support application</description>
 
@@ -13,7 +13,8 @@
   <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>TODO</license>
 
-  <!-- The *depend tags are used to specify dependencies -->
-  <!-- Dependencies can be catkin packages or system dependencies -->
+
   <buildtool_depend>catkin</buildtool_depend>
+  <depend>libfranka</depend>
+  <depend>roscpp</depend>
 </package>

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.4)
 
-project(asl-typing-8 CXX)
+project(typing-8 CXX)
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/../cmake)
 
@@ -53,6 +53,10 @@ target_link_libraries(examples_common PUBLIC Franka::Franka)
 add_executable(controller src/main.cpp src/lift_controller.cpp)
 target_link_libraries(controller Franka::Franka examples_common ${catkin_LIBRARIES})
 target_include_directories(controller PRIVATE /usr/include/eigen3)
+
+add_executable(dummy_controller src/dummy_main.cpp src/lift_controller.cpp)
+target_link_libraries(dummy_controller ${catkin_LIBRARIES})
+target_include_directories(dummy_controller PRIVATE /usr/include/eigen3)
 
 # target_link_libraries(joint_impedance_control Threads::Threads)
 # target_link_libraries(motion_with_control Poco::Foundation)
