@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     LiftController lc(n, &lift_flag);
 
     franka::Robot robot(argv[1]);
-    bool fixed_lifted_joints = true;
+    bool fixed_lifted_joints = true; // TODO move to config file
     std::array<double, 7> lifted_joints = setupFrankaArm(robot, fixed_lifted_joints);
 
     ros::AsyncSpinner spinner(4); // Use 4 threads
