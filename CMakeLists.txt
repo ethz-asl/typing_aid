@@ -26,30 +26,6 @@ add_library(examples_common STATIC
 target_include_directories(examples_common PRIVATE /usr/include/eigen3)
 target_link_libraries(examples_common PUBLIC Franka::Franka)
 
-# set(EXAMPLES
-#   cartesian_impedance_control
-#   communication_test
-#   echo_robot_state
-#   force_control
-#   generate_cartesian_pose_motion
-#   generate_cartesian_velocity_motion
-#   generate_consecutive_motions
-#   generate_elbow_motion
-#   generate_joint_position_motion
-#   generate_joint_velocity_motion
-#   grasp_object
-#   joint_impedance_control
-#   joint_point_to_point_motion
-#   motion_with_control
-#   print_joint_poses
-#   vacuum_object
-# )
-
-# foreach(example ${EXAMPLES})
-#   add_executable(${example} ${example}.cpp)
-#   target_link_libraries(${example} Franka::Franka examples_common Eigen3::Eigen3)
-# endforeach()
-
 add_executable(controller src/main.cpp src/lift_controller.cpp)
 target_link_libraries(controller Franka::Franka examples_common ${catkin_LIBRARIES})
 target_include_directories(controller PRIVATE /usr/include/eigen3)
@@ -57,12 +33,3 @@ target_include_directories(controller PRIVATE /usr/include/eigen3)
 add_executable(dummy_controller src/dummy_main.cpp src/lift_controller.cpp)
 target_link_libraries(dummy_controller ${catkin_LIBRARIES})
 target_include_directories(dummy_controller PRIVATE /usr/include/eigen3)
-
-# target_link_libraries(joint_impedance_control Threads::Threads)
-# target_link_libraries(motion_with_control Poco::Foundation)
-
-# include(GNUInstallDirs)
-# install(TARGETS ${EXAMPLES}
-#   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-# )

@@ -27,7 +27,7 @@ sudo apt install ros-melodic-libfranka
 **Proposed procedure**:
 
 1. Start Franka arm and set to autonomous mode.
-1. Launch the program: `rosrun typing-8 controller $FRANKA-IP` (not sure if the variable name `$FRANKA-IP` is correct; adapt if necessary).
+1. Launch the program: `rosrun typing-8 controller $FRANKA_IP`.
 1. Hit enter. The arm will move to the home position.
 1. Hit enter again to start gravity compensation mode.
 1. Hold on to the string which is attached to the hand of the Franka arm. Keep the e-stop close by in case something unexpected happens.
