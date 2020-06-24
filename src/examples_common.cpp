@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <iostream>
 
 #include <franka/exception.h>
 #include <franka/robot.h>
@@ -18,6 +19,13 @@ void setDefaultBehavior(franka::Robot &robot)
         {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}}, {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}});
     robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
     robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
+}
+
+void printArray(const double *arr, int size)
+{
+    for (int i = 0; i < size - 1; i++)
+        std::cout << *(arr + i) << " , ";
+    std::cout << *(arr + size - 1) << std::endl;
 }
 
 MotionGenerator::MotionGenerator(double speed_factor, const std::array<double, 7> q_goal)
@@ -146,6 +154,13 @@ franka::JointPositions MotionGenerator::operator()(const franka::RobotState &rob
 
     Vector7d delta_q_d;
     bool motion_finished = calculateDesiredValues(time_, &delta_q_d);
+
+    // Abort the motion if force exceeds a threshold
+    Eigen::Vector3d forces(robot_state.K_F_ext_hat_K.data());
+    if (forces.norm() > maxForceNorm)
+    {
+        motion_finished = true;
+    }
 
     std::array<double, 7> joint_positions;
     Eigen::VectorXd::Map(&joint_positions[0], 7) = (q_start_ + delta_q_d);

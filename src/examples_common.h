@@ -24,6 +24,11 @@
 void setDefaultBehavior(franka::Robot &robot);
 
 /**
+ * Prints a std::array
+ */
+void printArray(const double *arr, int size);
+
+/**
  * An example showing how to generate a joint pose motion to a goal position. Adapted from:
  * Wisama Khalil and Etienne Dombre. 2002. Modeling, Identification and Control of Robots
  * (Kogan Page Science Paper edition).
@@ -55,6 +60,8 @@ private:
 
     bool calculateDesiredValues(double t, Vector7d *delta_q_d) const;
     void calculateSynchronizedValues();
+
+    static constexpr double maxForceNorm = 10; // TODO move to config file
 
     static constexpr double kDeltaQMotionFinished = 1e-6;
     const Vector7d q_goal_;
