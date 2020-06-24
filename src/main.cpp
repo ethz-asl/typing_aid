@@ -16,6 +16,10 @@ std::array<double, 7> setupFrankaArm(franka::Robot &robot, bool fixed_initial_po
     {
         setDefaultBehavior(robot);
 
+        franka::RobotState state = robot.readOnce();
+        ROS_INFO("Stiffness frame:");
+        printArray(state.EE_T_K.data(), state.EE_T_K.size());
+
         if (fixed_initial_pos)
         {
             // First move the robot to a suitable joint configuration
@@ -30,7 +34,6 @@ std::array<double, 7> setupFrankaArm(franka::Robot &robot, bool fixed_initial_po
         }
         else
         {
-            franka::RobotState state = robot.readOnce();
             ret = state.q;
         }
     }
@@ -100,7 +103,7 @@ int main(int argc, char **argv)
     LiftController lc(n, &lift_flag);
 
     franka::Robot robot(argv[1]);
-    bool fixed_lifted_joints = true; // TODO move to config file
+    bool fixed_lifted_joints = false; // TODO move to config file
     std::array<double, 7> lifted_joints = setupFrankaArm(robot, fixed_lifted_joints);
 
     ros::AsyncSpinner spinner(4); // Use 4 threads

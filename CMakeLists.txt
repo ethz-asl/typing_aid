@@ -33,3 +33,11 @@ target_include_directories(controller PRIVATE /usr/include/eigen3)
 add_executable(dummy_controller src/dummy_main.cpp src/lift_controller.cpp)
 target_link_libraries(dummy_controller ${catkin_LIBRARIES})
 target_include_directories(dummy_controller PRIVATE /usr/include/eigen3)
+
+add_executable(measuring_forces src/measuring_forces.cpp)
+target_link_libraries(measuring_forces Franka::Franka examples_common ${catkin_LIBRARIES})
+target_include_directories(measuring_forces PRIVATE /usr/include/eigen3)
+
+add_executable(playground src/playground.cpp)
+target_link_libraries(playground examples_common ${catkin_LIBRARIES})
+target_include_directories(playground PRIVATE /usr/include/eigen3)
