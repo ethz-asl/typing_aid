@@ -10,15 +10,26 @@
 #include <franka/exception.h>
 #include <franka/robot.h>
 
-void setDefaultBehavior(franka::Robot &robot)
+void setStrongBehavior(franka::Robot &robot)
 {
     robot.setCollisionBehavior(
         {{30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0}}, {{30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0}},
-        {{15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0}}, {{15.0, 15.0, 15.0, 15.0, 15.0, 15.0, 15.0}},
+        {{30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0}}, {{30.0, 30.0, 30.0, 30.0, 30.0, 30.0, 30.0}},
         {{30.0, 30.0, 30.0, 30.0, 30.0, 30.0}}, {{30.0, 30.0, 30.0, 30.0, 30.0, 30.0}},
-        {{15.0, 15.0, 15.0, 15.0, 15.0, 15.0}}, {{15.0, 15.0, 15.0, 15.0, 15.0, 15.0}});
+        {{30.0, 30.0, 30.0, 30.0, 30.0, 30.0}}, {{30.0, 30.0, 30.0, 30.0, 30.0, 30.0}});
     robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
     robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
+}
+
+void setDefaultBehavior(franka::Robot &robot)
+{
+    robot.setCollisionBehavior(
+    {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+      {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}}, {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 10.0}},
+      {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}}, {{20.0, 20.0, 20.0, 20.0, 20.0, 20.0}},
+      {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}}, {{10.0, 10.0, 10.0, 10.0, 10.0, 10.0}});
+//   robot.setJointImpedance({{3000, 3000, 3000, 2500, 2500, 2000, 2000}});
+//   robot.setCartesianImpedance({{3000, 3000, 3000, 300, 300, 300}});
 }
 
 void printArray(const double *arr, int size)
@@ -41,6 +52,7 @@ MotionGenerator::MotionGenerator(double speed_factor, const std::array<double, 7
     t_2_sync_.setZero();
     t_f_sync_.setZero();
     q_1_.setZero();
+    forceThresholdExceeded = false;
 }
 
 bool MotionGenerator::calculateDesiredValues(double t, Vector7d *delta_q_d) const
@@ -156,14 +168,26 @@ franka::JointPositions MotionGenerator::operator()(const franka::RobotState &rob
     bool motion_finished = calculateDesiredValues(time_, &delta_q_d);
 
     // Abort the motion if force exceeds a threshold
-    Eigen::Vector3d forces(robot_state.K_F_ext_hat_K.data());
-    if (forces.norm() > maxForceNorm)
-    {
-        motion_finished = true;
-    }
+    // Eigen::Vector3d forces(robot_state.K_F_ext_hat_K.data());
+    // if (forces.norm() > maxForceNorm || forceThresholdExceeded)
+    // {
+    //     if (!forceThresholdExceeded) {
+    //         stopping_joint_positions = robot_state.q;
+    //         forceThresholdExceeded = true;
+    //     }
+    //     std::cout << "============== Force threshold exceeded ===============" << std::endl;
+    //     Vector7d q_dot(robot_state.dq.data());
+    //     if (q_dot.norm() < 0.005) {
+    //         motion_finished = true;
+    //     }
+    // }
 
     std::array<double, 7> joint_positions;
-    Eigen::VectorXd::Map(&joint_positions[0], 7) = (q_start_ + delta_q_d);
+    if (!forceThresholdExceeded) {
+        Eigen::VectorXd::Map(&joint_positions[0], 7) = (q_start_ + delta_q_d);
+    } else {
+        joint_positions = stopping_joint_positions;
+    }
     franka::JointPositions output(joint_positions);
     output.motion_finished = motion_finished;
     return output;

@@ -22,6 +22,7 @@
  * @param[in] robot Robot instance to set behavior on.
  */
 void setDefaultBehavior(franka::Robot &robot);
+void setStrongBehavior(franka::Robot &robot);
 
 /**
  * Prints a std::array
@@ -61,7 +62,9 @@ private:
     bool calculateDesiredValues(double t, Vector7d *delta_q_d) const;
     void calculateSynchronizedValues();
 
-    static constexpr double maxForceNorm = 10; // TODO move to config file
+    static constexpr double maxForceNorm = 5; // TODO move to config file
+    bool forceThresholdExceeded;
+    std::array<double, 7> stopping_joint_positions;
 
     static constexpr double kDeltaQMotionFinished = 1e-6;
     const Vector7d q_goal_;

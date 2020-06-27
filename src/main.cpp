@@ -14,12 +14,12 @@ std::array<double, 7> setupFrankaArm(franka::Robot &robot, bool fixed_initial_po
     std::array<double, 7> ret;
     try
     {
-        setDefaultBehavior(robot);
+        setStrongBehavior(robot);
         std::array<double, 3> F_x_load = {{0.0, 0.0, 0.0}};
         std::array<double, 9> load_inertia = {{1.0, 0.0, 0.0,
                                                0.0, 1.0, 0.0, 0.0, 0.0, 1.0}};
 
-        robot.setLoad(0.5, F_x_load, load_inertia);
+        robot.setLoad(0.7, F_x_load, load_inertia);
 
         franka::RobotState state = robot.readOnce();
         ROS_INFO("Stiffness frame:");
@@ -52,8 +52,8 @@ std::array<double, 7> setupFrankaArm(franka::Robot &robot, bool fixed_initial_po
 
 void startGravityCompensation(franka::Robot &robot, bool &stopit)
 {
-    try
-    {
+    // try
+    // {
         // Put robot into gravity compensation mode
         ROS_INFO("Starting gravity compensation mode");
         robot.control([&stopit](const franka::RobotState &, franka::Duration) -> franka::Torques {
@@ -65,12 +65,12 @@ void startGravityCompensation(franka::Robot &robot, bool &stopit)
             }
             return zero_torques;
         });
-    }
-    catch (const franka::Exception &e)
-    {
-        ROS_ERROR_STREAM(e.what());
-        throw e;
-    }
+    // }
+    // catch (const franka::Exception &e)
+    // {
+    //     ROS_ERROR_STREAM(e.what());
+    //     throw e;
+    // }
 }
 
 void liftArm(franka::Robot &robot, std::array<double, 7> lifted_joints)
@@ -83,7 +83,7 @@ void liftArm(franka::Robot &robot, std::array<double, 7> lifted_joints)
 
     try
     {
-        MotionGenerator motion_generator(0.15, lifted_joints);
+        MotionGenerator motion_generator(0.25, lifted_joints);
         robot.control(motion_generator);
     }
     catch (const franka::Exception &e)
@@ -121,9 +121,17 @@ int main(int argc, char **argv)
     spinner.start();
     while (ros::ok())
     {
-        startGravityCompensation(robot, lift_flag);
-        liftArm(robot, lifted_joints);
-        lift_flag = false;
+        try {
+            lift_flag = false;
+            startGravityCompensation(robot, lift_flag);
+            liftArm(robot, lifted_joints);
+        } catch (const franka::ControlException& e) {
+            robot.automaticErrorRecovery();
+            ROS_INFO("======================================================================");
+            ROS_INFO_STREAM("Robot was stopped due to an error: " << e.what());
+            ROS_INFO("Press any key to continue...");
+            std::cin.ignore();
+        }
     }
 
     return 0;
