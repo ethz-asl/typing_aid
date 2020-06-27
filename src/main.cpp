@@ -15,6 +15,11 @@ std::array<double, 7> setupFrankaArm(franka::Robot &robot, bool fixed_initial_po
     try
     {
         setDefaultBehavior(robot);
+        std::array<double, 3> F_x_load = {{0.0, 0.0, 0.0}};
+        std::array<double, 9> load_inertia = {{1.0, 0.0, 0.0,
+                                               0.0, 1.0, 0.0, 0.0, 0.0, 1.0}};
+
+        robot.setLoad(0.5, F_x_load, load_inertia);
 
         franka::RobotState state = robot.readOnce();
         ROS_INFO("Stiffness frame:");
@@ -78,7 +83,7 @@ void liftArm(franka::Robot &robot, std::array<double, 7> lifted_joints)
 
     try
     {
-        MotionGenerator motion_generator(0.5, lifted_joints);
+        MotionGenerator motion_generator(0.15, lifted_joints);
         robot.control(motion_generator);
     }
     catch (const franka::Exception &e)
