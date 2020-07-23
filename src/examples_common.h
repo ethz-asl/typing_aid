@@ -23,6 +23,7 @@
  */
 void setDefaultBehavior(franka::Robot &robot);
 void setStrongBehavior(franka::Robot &robot);
+void setImpedanceBehavior(franka::Robot &robot);
 
 /**
  * Prints a std::array
@@ -43,7 +44,7 @@ public:
    * @param[in] speed_factor General speed factor in range [0, 1].
    * @param[in] q_goal Target joint positions.
    */
-    MotionGenerator(double speed_factor, const std::array<double, 7> q_goal);
+    MotionGenerator(double speed_factor, std::array<double, 7> q_goal);
 
     /**
    * Sends joint position calculations

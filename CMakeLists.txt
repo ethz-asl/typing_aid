@@ -26,7 +26,7 @@ add_library(examples_common STATIC
 target_include_directories(examples_common PRIVATE /usr/include/eigen3)
 target_link_libraries(examples_common PUBLIC Franka::Franka)
 
-add_executable(controller src/main.cpp src/lift_controller.cpp)
+add_executable(controller src/main.cpp src/lift_controller.cpp src/lift_controller_joint_position.cpp src/lift_controller_joint_position.h src/LiftControllerCartesianImpedance.cpp src/LiftControllerCartesianImpedance.h)
 target_link_libraries(controller Franka::Franka examples_common ${catkin_LIBRARIES})
 target_include_directories(controller PRIVATE /usr/include/eigen3)
 

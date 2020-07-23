@@ -10,6 +10,14 @@
 #include <franka/exception.h>
 #include <franka/robot.h>
 
+void setImpedanceBehavior(franka::Robot &robot)
+{
+    robot.setCollisionBehavior({{100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0}},
+                               {{100.0, 100.0, 100.0, 100.0, 100.0, 100.0, 100.0}},
+                               {{100.0, 100.0, 100.0, 100.0, 100.0, 100.0}},
+                               {{100.0, 100.0, 100.0, 100.0, 100.0, 100.0}});
+}
+
 void setStrongBehavior(franka::Robot &robot)
 {
     robot.setCollisionBehavior(

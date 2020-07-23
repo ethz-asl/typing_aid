@@ -1,0 +1,2 @@
+fixed_initial_position: false
+control_mode: "impedance"   # Can be "impedance" or "position"
