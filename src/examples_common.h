@@ -63,9 +63,9 @@ private:
     bool calculateDesiredValues(double t, Vector7d *delta_q_d) const;
     void calculateSynchronizedValues();
 
-    static constexpr double maxForceNorm = 5; // TODO move to config file
-    bool forceThresholdExceeded;
-    std::array<double, 7> stopping_joint_positions;
+//    static constexpr double maxForceNorm = 5; // TODO move to config file
+//    bool forceThresholdExceeded;
+//    std::array<double, 7> stopping_joint_positions;
 
     static constexpr double kDeltaQMotionFinished = 1e-6;
     const Vector7d q_goal_;
