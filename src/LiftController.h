@@ -19,9 +19,10 @@ public:
 
 protected:
     franka::Robot *robot;
+    bool lift_flag;
 private:
     ros::Subscriber sub;
-    bool lift_flag;
+
 
 };
 

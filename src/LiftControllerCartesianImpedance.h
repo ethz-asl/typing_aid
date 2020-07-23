@@ -19,6 +19,7 @@ private:
     franka::Model model;
     Eigen::Matrix<double, 6, 6> stiffness;
     Eigen::Matrix<double, 6, 6> damping;
+    double time_limit;
 };
 
 

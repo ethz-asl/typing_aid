@@ -1,4 +1,4 @@
 <launch>
     <rosparam command="load" file="$(find typing-8)/config/parameters.yaml"/>
-    <node name="lifting_listener" pkg="typing-8" type="controller" output="screen" required="true"/>
+    <node name="lifting_listener" pkg="typing-8" type="controller" args="172.16.0.2" output="screen" required="true"/>
 </launch>

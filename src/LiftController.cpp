@@ -20,7 +20,8 @@ void LiftController::buttonCallback(const std_msgs::Empty::ConstPtr &msg) {
 }
 
 void LiftController::startGravityCompensation() {
-    // Put robot into gravity compensation mode
+    try {
+        // Put robot into gravity compensation mode
     ROS_INFO("Starting gravity compensation mode");
     robot->control([this](const franka::RobotState &, franka::Duration) -> franka::Torques {
         franka::Torques zero_torques{{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
@@ -30,4 +31,9 @@ void LiftController::startGravityCompensation() {
         }
         return zero_torques;
     });
+    } catch (const franka::Exception &e) {
+        ROS_ERROR_STREAM(e.what());
+        throw e;
+    }
+    
 }

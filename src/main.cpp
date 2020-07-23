@@ -11,7 +11,7 @@
 
 
 int main(int argc, char **argv) {
-    if (argc != 2) {
+    if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <robot-hostname>" << std::endl;
         return -1;
     }
@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     n.param<std::string>("control_mode", control_mode, "position");
 
     // Initialize controller
-    franka::Robot robot(argv[1]);
+    franka::Robot robot(argv[argc - 1]);
     LiftController *lc;
     if (control_mode == "position") {
         lc = new LiftControllerJointPosition(n, &robot);
@@ -43,9 +43,12 @@ int main(int argc, char **argv) {
     std::cin.ignore();
 
     spinner.start();
-    while (ros::ok()) {
+    while (true) {
         try {
             lc->startGravityCompensation();
+            if (!ros::ok()) {
+                break;
+            }
             lc->liftArm();
         } catch (const franka::ControlException &e) {
             robot.automaticErrorRecovery();

@@ -8,6 +8,10 @@ LiftControllerCartesianImpedance::LiftControllerCartesianImpedance(ros::NodeHand
         : LiftController(n, robot), model(robot->loadModel()) {
     bool fixed_initial_position;
     n.param<bool>("predefined_initial_pose", fixed_initial_position, false);
+    if (!n.getParam("impedance_control/time_limit", time_limit)) {
+        ROS_ERROR("Parameter missing");
+        throw;
+    }
 
     setImpedanceBehavior(*robot);
 
@@ -55,12 +59,15 @@ LiftControllerCartesianImpedance::LiftControllerCartesianImpedance(ros::NodeHand
 
 void LiftControllerCartesianImpedance::liftArm() {
     ROS_INFO("Lifting arm");
-
+    double time = 0.0;
+    lift_flag = false;
     try {
         // define callback for the torque control loop
         std::function<franka::Torques(const franka::RobotState &, franka::Duration)>
-                impedance_control_callback = [this](const franka::RobotState &robot_state,
-                                                    franka::Duration /*duration*/) -> franka::Torques {
+                impedance_control_callback = [this, &time](const franka::RobotState &robot_state,
+                                                    franka::Duration period) -> franka::Torques {
+            time += period.toSec();
+
             // get state variables
             std::array<double, 7> coriolis_array = model.coriolis(robot_state);
             std::array<double, 42> jacobian_array =
@@ -94,7 +101,13 @@ void LiftControllerCartesianImpedance::liftArm() {
             tau_d << tau_task + coriolis;
             std::array<double, 7> tau_d_array{};
             Eigen::VectorXd::Map(&tau_d_array[0], 7) = tau_d;
-            return tau_d_array;
+            if (time < 1.0) {
+                return tau_d_array;
+            } else {
+                franka::Torques zero_torques{{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+                return franka::MotionFinished(zero_torques); 
+            }
+            
         };
         robot->control(impedance_control_callback);
     }

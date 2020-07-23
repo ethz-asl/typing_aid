@@ -35,6 +35,7 @@ LiftControllerJointPosition::LiftControllerJointPosition(ros::NodeHandle &n, fra
 
 void LiftControllerJointPosition::liftArm() {
     ROS_INFO("Lifting arm");
+    lift_flag = false;
 
     // Two options:
     // 1) Lift arm to pre-defined position
