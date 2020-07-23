@@ -1,4 +1,4 @@
-#include "lift_controller.h"
+#include "LiftController.h"
 
 LiftController::LiftController(ros::NodeHandle &n, franka::Robot *robot_ptr) : robot(robot_ptr) {
     lift_flag = false;

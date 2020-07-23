@@ -6,7 +6,7 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 
-#include "lift_controller_joint_position.h"
+#include "LiftControllerJointPosition.h"
 #include "LiftControllerCartesianImpedance.h"
 
 

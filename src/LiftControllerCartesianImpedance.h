@@ -5,7 +5,7 @@
 #ifndef TYPING_8_LIFTCONTROLLERCARTESIANIMPEDANCE_H
 #define TYPING_8_LIFTCONTROLLERCARTESIANIMPEDANCE_H
 
-#include "lift_controller.h"
+#include "LiftController.h"
 #include <franka/model.h>
 #include <Eigen/Dense>
 

@@ -2,7 +2,7 @@
 // Created by fjulian on 23.07.20.
 //
 
-#include "lift_controller_joint_position.h"
+#include "LiftControllerJointPosition.h"
 
 LiftControllerJointPosition::LiftControllerJointPosition(ros::NodeHandle &n, franka::Robot *robot,
                                                          bool fixed_initial_joints)

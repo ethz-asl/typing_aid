@@ -2,10 +2,10 @@
 // Created by fjulian on 23.07.20.
 //
 
-#ifndef TYPING_8_LIFT_CONTROLLER_JOINT_POSITION_H
-#define TYPING_8_LIFT_CONTROLLER_JOINT_POSITION_H
+#ifndef TYPING_8_LIFTCONTROLLERJOINTPOSITION_H
+#define TYPING_8_LIFTCONTROLLERJOINTPOSITION_H
 
-#include "lift_controller.h"
+#include "LiftController.h"
 
 class LiftControllerJointPosition : public LiftController {
 public:
@@ -16,4 +16,4 @@ private:
 };
 
 
-#endif //TYPING_8_LIFT_CONTROLLER_JOINT_POSITION_H
+#endif //TYPING_8_LIFTCONTROLLERJOINTPOSITION_H
