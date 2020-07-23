@@ -1,2 +1,8 @@
-fixed_initial_position: false
+predefined_initial_pose: false
+initial_position_speed: 0.4
 control_mode: "impedance"   # Can be "impedance" or "position"
+impedance_control:
+  tranlational_stiffness: 150.0
+  rotational_stiffness: 10.0
+position_control:
+  speed: 0.25

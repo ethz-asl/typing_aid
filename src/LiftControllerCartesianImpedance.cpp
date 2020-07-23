@@ -4,15 +4,19 @@
 
 #include "LiftControllerCartesianImpedance.h"
 
-LiftControllerCartesianImpedance::LiftControllerCartesianImpedance(ros::NodeHandle &n, franka::Robot *robot,
-                                                                   bool fixed_initial_position)
+LiftControllerCartesianImpedance::LiftControllerCartesianImpedance(ros::NodeHandle &n, franka::Robot *robot)
         : LiftController(n, robot), model(robot->loadModel()) {
+    bool fixed_initial_position;
+    n.param<bool>("predefined_initial_pose", fixed_initial_position, false);
+
     setImpedanceBehavior(*robot);
 
     if (fixed_initial_position) {
         // First move the robot to a suitable joint configuration
         std::array<double, 7> lifted_joints = {{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}};
-        MotionGenerator motion_generator(0.4, lifted_joints);
+        float speed;
+        n.param<float>("initial_position_speed", speed, 0.4);
+        MotionGenerator motion_generator(speed, lifted_joints);
         ROS_INFO_STREAM("WARNING: This example will move the robot! "
                                 << "Please make sure to have the user stop button at hand!" << std::endl
                                 << "Press Enter to move to initial position...");
@@ -29,8 +33,16 @@ LiftControllerCartesianImpedance::LiftControllerCartesianImpedance(ros::NodeHand
     position_d = initial_transform.translation();
     orientation_d = initial_transform.linear();
 
-    const double translational_stiffness{150.0};
-    const double rotational_stiffness{10.0};
+    double translational_stiffness;
+    if (!n.getParam("impedance_control/translational_stiffness", translational_stiffness)) {
+        ROS_ERROR("Parameter missing");
+        throw;
+    }
+    double rotational_stiffness;
+    if (!n.getParam("impedance_control/rotational_stiffness", rotational_stiffness)) {
+        ROS_ERROR("Parameter missing");
+        throw;
+    }
     stiffness.setZero();
     stiffness.topLeftCorner(3, 3) << translational_stiffness * Eigen::MatrixXd::Identity(3, 3);
     stiffness.bottomRightCorner(3, 3) << rotational_stiffness * Eigen::MatrixXd::Identity(3, 3);

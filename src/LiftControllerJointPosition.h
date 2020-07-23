@@ -9,10 +9,11 @@
 
 class LiftControllerJointPosition : public LiftController {
 public:
-    LiftControllerJointPosition(ros::NodeHandle &n, franka::Robot *robot, bool fixed_initial_joints);
+    LiftControllerJointPosition(ros::NodeHandle &n, franka::Robot *robot);
     void liftArm() override;
 private:
     std::array<double, 7> lifted_joints{};
+    float liftingSpeed;
 };
 
 

@@ -11,7 +11,7 @@
 
 class LiftControllerCartesianImpedance : public LiftController {
 public:
-    LiftControllerCartesianImpedance(ros::NodeHandle &n, franka::Robot *robot, bool fixed_initial_position);
+    LiftControllerCartesianImpedance(ros::NodeHandle &n, franka::Robot *robot);
     void liftArm() override;
 private:
     Eigen::Vector3d position_d;

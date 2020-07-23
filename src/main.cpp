@@ -20,20 +20,17 @@ int main(int argc, char **argv) {
     ros::NodeHandle n;
 
     // Get parameters
-    bool fixed_lifted_joints;
-    n.param<bool>("fixed_initial_position", fixed_lifted_joints, false);
     std::string control_mode;
     n.param<std::string>("control_mode", control_mode, "position");
 
     // Initialize controller
     franka::Robot robot(argv[1]);
-    LiftController* lc;
+    LiftController *lc;
     if (control_mode == "position") {
-        lc = new LiftControllerJointPosition(n, &robot, fixed_lifted_joints);
+        lc = new LiftControllerJointPosition(n, &robot);
     } else if (control_mode == "impedance") {
-        lc = new LiftControllerCartesianImpedance(n, &robot, fixed_lifted_joints);
-    }
-    else {
+        lc = new LiftControllerCartesianImpedance(n, &robot);
+    } else {
         ROS_ERROR("Invalid control mode defined");
         return -1;
     }
