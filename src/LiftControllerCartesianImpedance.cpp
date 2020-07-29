@@ -101,12 +101,13 @@ void LiftControllerCartesianImpedance::liftArm() {
             tau_d << tau_task + coriolis;
             std::array<double, 7> tau_d_array{};
             Eigen::VectorXd::Map(&tau_d_array[0], 7) = tau_d;
-            if (time < 1.0) {
-                return tau_d_array;
-            } else {
-                franka::Torques zero_torques{{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-                return franka::MotionFinished(zero_torques); 
-            }
+            return tau_d_array;
+            // if (time < 1.0) {
+            //     return tau_d_array;
+            // } else {
+            //     franka::Torques zero_torques{{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
+            //     return franka::MotionFinished(zero_torques); 
+            // }
             
         };
         robot->control(impedance_control_callback);

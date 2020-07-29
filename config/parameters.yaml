@@ -2,7 +2,7 @@ predefined_initial_pose: false
 initial_position_speed: 0.4
 control_mode: "impedance"   # Can be "impedance" or "position"
 impedance_control:
-  translational_stiffness: 100.0
+  translational_stiffness: 120.0
   rotational_stiffness: 10.0
   time_limit: 0.75
 position_control:

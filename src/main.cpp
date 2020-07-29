@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
     spinner.start();
     while (true) {
         try {
-            lc->startGravityCompensation();
+            // lc->startGravityCompensation();
             if (!ros::ok()) {
                 break;
             }
