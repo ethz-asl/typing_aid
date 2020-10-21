@@ -1,4 +1,4 @@
-# Typing-8
+# TypingAid
 
 Controller for the Franka Arm that can lift a human's arm to aid with typing.
 
