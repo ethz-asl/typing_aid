@@ -26,10 +26,18 @@ add_library(examples_common STATIC
 target_include_directories(examples_common PRIVATE /usr/include/eigen3)
 target_link_libraries(examples_common PUBLIC Franka::Franka)
 
-add_executable(controller src/main.cpp src/lift_controller.cpp)
+add_executable(controller src/main.cpp src/LiftController.cpp src/LiftControllerJointPosition.cpp src/LiftControllerJointPosition.h src/LiftControllerCartesianImpedance.cpp src/LiftControllerCartesianImpedance.h)
 target_link_libraries(controller Franka::Franka examples_common ${catkin_LIBRARIES})
-target_include_directories(controller PRIVATE /usr/include/eigen3)
+target_include_directories(controller PRIVATE /usr/include/eigen3 ${catkin_INCLUDE_DIRS})
 
-add_executable(dummy_controller src/dummy_main.cpp src/lift_controller.cpp)
-target_link_libraries(dummy_controller ${catkin_LIBRARIES})
-target_include_directories(dummy_controller PRIVATE /usr/include/eigen3)
+# add_executable(dummy_controller src/dummy_main.cpp src/LiftController.cpp)
+# target_link_libraries(dummy_controller ${catkin_LIBRARIES})
+# target_include_directories(dummy_controller PRIVATE /usr/include/eigen3 ${catkin_INCLUDE_DIRS})
+
+add_executable(measuring_forces src/measuring_forces.cpp)
+target_link_libraries(measuring_forces Franka::Franka examples_common ${catkin_LIBRARIES})
+target_include_directories(measuring_forces PRIVATE /usr/include/eigen3)
+
+add_executable(playground src/playground.cpp)
+target_link_libraries(playground examples_common ${catkin_LIBRARIES})
+target_include_directories(playground PRIVATE /usr/include/eigen3)

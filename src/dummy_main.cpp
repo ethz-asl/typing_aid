@@ -3,7 +3,7 @@
 #include <ros/ros.h>
 #include <ros/console.h>
 
-#include "lift_controller.h"
+#include "LiftController.h"
 
 int startGravityCompensation(bool &stopit)
 {

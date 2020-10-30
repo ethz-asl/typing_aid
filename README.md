@@ -40,3 +40,14 @@ To avoid the arm going into collision mode when supposed to lift the human arm, 
 - Collision behavior, defined in `src/examples_common.cpp`, documented [here](https://github.com/frankaemika/libfranka/blob/06ad8dcf5706f00663b6fd6351734096cea9c2d0/include/franka/robot.h#L483).
 - Joint impedance, defined in `src/examples_common.cpp`, documented [here](https://github.com/frankaemika/libfranka/blob/06ad8dcf5706f00663b6fd6351734096cea9c2d0/include/franka/robot.h#L533).
 - Cartesian impedance, defined in `src/examples_common.cpp`, documented [here](https://github.com/frankaemika/libfranka/blob/06ad8dcf5706f00663b6fd6351734096cea9c2d0/include/franka/robot.h#L547).
+
+## Remaining Issues
+
+- Overload protection does not work as planned due to the fact that the motion generator isn't designed to stop abruptly.
+- Always when ending the program, the robot moves back to the home position. Why?
+
+## Comments from Stephan
+
+mutigen wachen steifen wellenfoermigen einsatz
+weil leute regelrecht (= regelmaessig) stuetzen
+es ist gut so, ich moechte weiter probieren
