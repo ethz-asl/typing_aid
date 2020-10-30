@@ -4,7 +4,7 @@
 
 #include <Eigen/Core>
 
-#include "examples_common.h"
+#include <franka_typing_aid/examples_common.h>
 
 struct test_struct
 {

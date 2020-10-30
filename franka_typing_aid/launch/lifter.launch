@@ -1,0 +1,4 @@
+<launch>
+    <rosparam command="load" file="$(find franka_typing_aid)/config/parameters.yaml"/>
+    <node name="lifting_listener" pkg="franka_typing_aid" type="franka_lifting_controller" args="172.16.0.2" output="screen" required="true"/>
+</launch>

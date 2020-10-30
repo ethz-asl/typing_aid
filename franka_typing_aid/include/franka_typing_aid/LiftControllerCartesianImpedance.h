@@ -5,14 +5,16 @@
 #ifndef TYPING_8_LIFTCONTROLLERCARTESIANIMPEDANCE_H
 #define TYPING_8_LIFTCONTROLLERCARTESIANIMPEDANCE_H
 
-#include "LiftController.h"
+#include <franka_typing_aid/LiftController.h>
 #include <franka/model.h>
 #include <Eigen/Dense>
 
-class LiftControllerCartesianImpedance : public LiftController {
+class LiftControllerCartesianImpedance : public LiftController
+{
 public:
     LiftControllerCartesianImpedance(ros::NodeHandle &n, franka::Robot *robot);
     void liftArm() override;
+
 private:
     Eigen::Vector3d position_d;
     Eigen::Quaterniond orientation_d;
@@ -21,6 +23,5 @@ private:
     Eigen::Matrix<double, 6, 6> damping;
     double time_limit;
 };
-
 
 #endif //TYPING_8_LIFTCONTROLLERCARTESIANIMPEDANCE_H

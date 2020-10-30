@@ -3,7 +3,7 @@
 #include <franka/robot.h>
 #include <thread>
 #include <chrono>
-#include "examples_common.h"
+#include <franka_typing_aid/examples_common.h>
 
 #include <Eigen/Core>
 
@@ -26,12 +26,12 @@ int main(int argc, char **argv)
             // should not be done in a control loop.
             std::cout << "force/torques: ";
             printArray(robot_state.K_F_ext_hat_K.data(), robot_state.K_F_ext_hat_K.size());
-            Eigen::Matrix<double,3,1> force_vec(robot_state.K_F_ext_hat_K.data());
-            std::cout << "force norm: " << force_vec.norm()<<std::endl;
+            Eigen::Matrix<double, 3, 1> force_vec(robot_state.K_F_ext_hat_K.data());
+            std::cout << "force norm: " << force_vec.norm() << std::endl;
             std::cout << "joint speeds: ";
             printArray(robot_state.dq.data(), robot_state.dq.size());
-            Eigen::Matrix<double,7,1> q_dot(robot_state.dq.data());
-            std::cout << "joint speed norm: " << q_dot.norm()<<std::endl;
+            Eigen::Matrix<double, 7, 1> q_dot(robot_state.dq.data());
+            std::cout << "joint speed norm: " << q_dot.norm() << std::endl;
             std::this_thread::sleep_for(500ms);
             return count++ < 100;
         });

@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>typing-8</name>
+  <name>franka_typing_aid</name>
   <version>0.0.0</version>
   <description>Franka controller for typing support application</description>
 

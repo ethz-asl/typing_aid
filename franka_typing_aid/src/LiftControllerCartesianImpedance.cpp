@@ -2,32 +2,34 @@
 // Created by fjulian on 23.07.20.
 //
 
-#include "LiftControllerCartesianImpedance.h"
+#include <franka_typing_aid/LiftControllerCartesianImpedance.h>
 
 LiftControllerCartesianImpedance::LiftControllerCartesianImpedance(ros::NodeHandle &n, franka::Robot *robot)
-        : LiftController(n, robot), model(robot->loadModel()) {
+    : LiftController(n, robot), model(robot->loadModel())
+{
     bool fixed_initial_position;
     n.param<bool>("predefined_initial_pose", fixed_initial_position, false);
-    if (!n.getParam("impedance_control/time_limit", time_limit)) {
+    if (!n.getParam("impedance_control/time_limit", time_limit))
+    {
         ROS_ERROR("Parameter missing");
         throw;
     }
 
     setImpedanceBehavior(*robot);
 
-    if (fixed_initial_position) {
+    if (fixed_initial_position)
+    {
         // First move the robot to a suitable joint configuration
         std::array<double, 7> lifted_joints = {{0, -M_PI_4, 0, -3 * M_PI_4, 0, M_PI_2, M_PI_4}};
         float speed;
         n.param<float>("initial_position_speed", speed, 0.4);
         MotionGenerator motion_generator(speed, lifted_joints);
         ROS_INFO_STREAM("WARNING: This example will move the robot! "
-                                << "Please make sure to have the user stop button at hand!" << std::endl
-                                << "Press Enter to move to initial position...");
+                        << "Please make sure to have the user stop button at hand!" << std::endl
+                        << "Press Enter to move to initial position...");
         std::cin.ignore();
         robot->control(motion_generator);
         ROS_INFO("Finished moving to initial joint configuration.");
-
     }
     franka::RobotState state = robot->readOnce();
     // ROS_INFO("Stiffness frame:");
@@ -38,12 +40,14 @@ LiftControllerCartesianImpedance::LiftControllerCartesianImpedance(ros::NodeHand
     orientation_d = initial_transform.linear();
 
     double translational_stiffness;
-    if (!n.getParam("impedance_control/translational_stiffness", translational_stiffness)) {
+    if (!n.getParam("impedance_control/translational_stiffness", translational_stiffness))
+    {
         ROS_ERROR("Parameter missing");
         throw;
     }
     double rotational_stiffness;
-    if (!n.getParam("impedance_control/rotational_stiffness", rotational_stiffness)) {
+    if (!n.getParam("impedance_control/rotational_stiffness", rotational_stiffness))
+    {
         ROS_ERROR("Parameter missing");
         throw;
     }
@@ -52,26 +56,28 @@ LiftControllerCartesianImpedance::LiftControllerCartesianImpedance(ros::NodeHand
     stiffness.bottomRightCorner(3, 3) << rotational_stiffness * Eigen::MatrixXd::Identity(3, 3);
     damping.setZero();
     damping.topLeftCorner(3, 3) << 2.0 * sqrt(translational_stiffness) *
-                                   Eigen::MatrixXd::Identity(3, 3);
-    damping.bottomRightCorner(3, 3) << 2.0 * sqrt(rotational_stiffness) *
                                        Eigen::MatrixXd::Identity(3, 3);
+    damping.bottomRightCorner(3, 3) << 2.0 * sqrt(rotational_stiffness) *
+                                           Eigen::MatrixXd::Identity(3, 3);
 }
 
-void LiftControllerCartesianImpedance::liftArm() {
+void LiftControllerCartesianImpedance::liftArm()
+{
     ROS_INFO("Lifting arm");
     double time = 0.0;
     lift_flag = false;
-    try {
+    try
+    {
         // define callback for the torque control loop
         std::function<franka::Torques(const franka::RobotState &, franka::Duration)>
-                impedance_control_callback = [this, &time](const franka::RobotState &robot_state,
-                                                    franka::Duration period) -> franka::Torques {
+            impedance_control_callback = [this, &time](const franka::RobotState &robot_state,
+                                                       franka::Duration period) -> franka::Torques {
             time += period.toSec();
 
             // get state variables
             std::array<double, 7> coriolis_array = model.coriolis(robot_state);
             std::array<double, 42> jacobian_array =
-                    model.zeroJacobian(franka::Frame::kEndEffector, robot_state);
+                model.zeroJacobian(franka::Frame::kEndEffector, robot_state);
             // convert to Eigen
             Eigen::Map<const Eigen::Matrix<double, 7, 1>> coriolis(coriolis_array.data());
             Eigen::Map<const Eigen::Matrix<double, 6, 7>> jacobian(jacobian_array.data());
@@ -86,7 +92,8 @@ void LiftControllerCartesianImpedance::liftArm() {
             error.head(3) << position - position_d;
             // orientation error
             // "difference" quaternion
-            if (orientation_d.coeffs().dot(orientation.coeffs()) < 0.0) {
+            if (orientation_d.coeffs().dot(orientation.coeffs()) < 0.0)
+            {
                 orientation.coeffs() << -orientation.coeffs();
             }
             // "difference" quaternion
@@ -106,13 +113,13 @@ void LiftControllerCartesianImpedance::liftArm() {
             //     return tau_d_array;
             // } else {
             //     franka::Torques zero_torques{{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}};
-            //     return franka::MotionFinished(zero_torques); 
+            //     return franka::MotionFinished(zero_torques);
             // }
-            
         };
         robot->control(impedance_control_callback);
     }
-    catch (const franka::Exception &e) {
+    catch (const franka::Exception &e)
+    {
         ROS_ERROR_STREAM(e.what());
         throw e;
     }

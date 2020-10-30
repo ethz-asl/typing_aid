@@ -4,10 +4,11 @@
 #include "ros/ros.h"
 #include <std_msgs/Empty.h>
 #include <franka/robot.h>
-#include "examples_common.h"
+#include <franka_typing_aid/examples_common.h>
 #include <franka/exception.h>
 
-class LiftController {
+class LiftController
+{
 public:
     LiftController(ros::NodeHandle &n, franka::Robot *robot_ptr);
 
@@ -20,10 +21,9 @@ public:
 protected:
     franka::Robot *robot;
     bool lift_flag;
+
 private:
     ros::Subscriber sub;
-
-
 };
 
 #endif

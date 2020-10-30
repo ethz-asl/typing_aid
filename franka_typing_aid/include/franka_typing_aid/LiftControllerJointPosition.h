@@ -5,16 +5,17 @@
 #ifndef TYPING_8_LIFTCONTROLLERJOINTPOSITION_H
 #define TYPING_8_LIFTCONTROLLERJOINTPOSITION_H
 
-#include "LiftController.h"
+#include <franka_typing_aid/LiftController.h>
 
-class LiftControllerJointPosition : public LiftController {
+class LiftControllerJointPosition : public LiftController
+{
 public:
     LiftControllerJointPosition(ros::NodeHandle &n, franka::Robot *robot);
     void liftArm() override;
+
 private:
     std::array<double, 7> lifted_joints{};
     float liftingSpeed;
 };
-
 
 #endif //TYPING_8_LIFTCONTROLLERJOINTPOSITION_H
