@@ -4,6 +4,11 @@ import rospy
 from std_msgs.msg import String
 import anydrive_msgs.msg as msg_defs
 
+try:
+    input = raw_input
+except:
+    pass
+
 
 class ManualCommander:
     def __init__(self):
@@ -21,8 +26,7 @@ class ManualCommander:
         while not rospy.is_shutdown():
             rospy.loginfo("===========================================")
             selection = input(
-                f"Select from:\n (a) Abort\n (b) Print state\n (c) Command position\n"
-                f"> "
+                "Select from:\n (a) Abort\n (b) Print state\n (c) Command position\n> "
             )
             rospy.loginfo("-------------------------------------------")
             if selection == "a":
@@ -30,7 +34,12 @@ class ManualCommander:
             elif selection == "b":
                 res = rospy.wait_for_message(self.prefix + "/reading", msg_defs.Reading)
                 rospy.loginfo(
-                    f"Current: {res.state.current}, Position: {res.state.joint_position}, Velocity: {res.state.joint_velocity}, Torque: {res.state.joint_torque}"
+                    "Current: {}, Position: {}, Velocity: {}, Torque: {}".format(
+                        res.state.current,
+                        res.state.joint_position,
+                        res.state.joint_velocity,
+                        res.state.joint_torque,
+                    )
                 )
             elif selection == "c":
                 msg = msg_defs.Command()
