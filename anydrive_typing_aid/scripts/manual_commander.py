@@ -26,13 +26,15 @@ class ManualCommander:
         while not rospy.is_shutdown():
             rospy.loginfo("===========================================")
             selection = input(
-                "Select from:\n (a) Abort\n (b) Print state\n (c) Command position\n> "
+                "Select from:\n (a) Abort\n (b) Print state\n (c) Command position\n (d) Command velocity\n> "
             )
             rospy.loginfo("-------------------------------------------")
             if selection == "a":
                 raise rospy.ROSInterruptException
             elif selection == "b":
-                res = rospy.wait_for_message(self.prefix + "/anydrive/reading", msg_defs.Reading)
+                res = rospy.wait_for_message(
+                    self.prefix + "/anydrive/reading", msg_defs.Reading
+                )
                 rospy.loginfo(
                     "Current: {}, Position: {}, Velocity: {}, Torque: {}".format(
                         res.state.current,
@@ -47,6 +49,16 @@ class ManualCommander:
                 value = float(value)
                 msg.mode.mode = 8
                 msg.joint_position = value
+                self.cmd_pub.publish(msg)
+                rospy.loginfo("Command sent")
+            elif selection == "d":
+                msg = msg_defs.Command()
+                value = input("Enter velocity: ")
+                value = float(value)
+                msg.mode.mode = 9
+                msg.motor_velocity = value
+                msg.gear_velocity = value
+                msg.joint_velocity = value
                 self.cmd_pub.publish(msg)
                 rospy.loginfo("Command sent")
             rospy.sleep(0.5)
