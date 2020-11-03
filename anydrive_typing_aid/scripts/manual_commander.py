@@ -19,7 +19,7 @@ class ManualCommander:
 
         # Publishers
         self.cmd_pub = rospy.Publisher(
-            self.prefix + "/command", msg_defs.Command, queue_size=10
+            self.prefix + "/anydrive/command", msg_defs.Command, queue_size=10
         )
 
     def run(self):
@@ -32,7 +32,7 @@ class ManualCommander:
             if selection == "a":
                 raise rospy.ROSInterruptException
             elif selection == "b":
-                res = rospy.wait_for_message(self.prefix + "/reading", msg_defs.Reading)
+                res = rospy.wait_for_message(self.prefix + "/anydrive/reading", msg_defs.Reading)
                 rospy.loginfo(
                     "Current: {}, Position: {}, Velocity: {}, Torque: {}".format(
                         res.state.current,
