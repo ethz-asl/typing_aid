@@ -13,3 +13,17 @@ Install ROS melodic. Install the following package(s):
 ```bash
 sudo apt install ros-melodic-libfranka
 ```
+
+## Notes on setup of anydrive SDK
+
+Capability setting (details described in SDK readme): 
+
+```bash
+sudo setcap cap_net_raw+ep devel/.private/anydrive_ethercat_ros/lib/anydrive_ethercat_ros/anydrive_ethercat_ros_node
+```
+
+Dependencies:
+
+```bash
+sudo apt install libxmlrpcpp-dev librosconsole-dev librospack-dev 
+```
