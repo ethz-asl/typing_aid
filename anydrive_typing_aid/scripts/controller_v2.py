@@ -6,11 +6,6 @@ from std_msgs.msg import String, Float64, Header
 import anydrive_msgs.msg as msg_defs
 from math import pi
 
-try:
-    input = raw_input
-except:
-    pass
-
 #Set global variables 
 #TODO find a better way to do that
 #angle in rad
@@ -42,6 +37,7 @@ class Controller:
         self.pid_gains_p = None
         self.pid_gains_i = None
         self.pid_gains_d = None
+        self.state = None
 
         # Publisher for : joint_position
         # joint_velocity
@@ -51,21 +47,22 @@ class Controller:
         # PID param ...
         self.pub_target = rospy.Publisher(self.prefix + "/anydrive/command", msg_defs.Command, queue_size=10)
 
-        #listener for inputs for same var as above but listen to the vector version 
-        self.lis_target = rospy.Subscriber(self.prefix +"/commands", msg_defs.Commands, self.command_callback) 
-    
-    def command_callback(self, data):
-        self.mode = data[1]
-        self.motor_position =data[2]
-        self.motor_velocity = data[3]
-        self.gear_position = data[4]
-        self.gear_velocity = data[5]
-        self.joint_position = data[6]
-        self.joint_velocity = data[7]
-        self.joint_torque = data[8]
-        self.pid_gains_p = data[9]
-        self.pid_gains_i = data[10]
-        self.pid_gains_d = data[11]
+        def command_callback(data):
+            self.mode = data.commanded.mode
+            self.motor_position = data.commanded.motor_position
+            self.motor_velocity = data.commanded.motor_velocity
+            self.gear_position = data.commanded.gear_position    
+            self.gear_velocity = data.commanded.gear_velocity
+            self.joint_position = data.commanded.joint_position
+            self.joint_velocity = data.commanded.joint_velocity
+            self.joint_torque = data.commanded.joint_torque
+            self.pid_gains_p = data.commanded.pid_gains_p
+            self.pid_gains_i = data.commanded.pid_gains_i
+            self.pid_gains_d = data.commanded.pid_gains_d
+
+            self.state = data.state
+
+        self.lis_target = rospy.Subscriber(self.prefix +"/anydrive/reading", msg_defs.Reading, command_callback)
 
     def pid(self,mode):
         msg = msg_defs.Command()
@@ -109,14 +106,13 @@ class Controller:
         msg = msg_defs.Command()
         msg.mode.mode = 1
         self.pub_target.publish(msg)
-        rospy.sleep(time.)#in seconds
+        rospy.sleep(time)#in seconds
 
 if __name__ == "__main__":
     cmd = Controller()
     rospy.loginfo("=================================")
     rospy.loginfo("Controller init successful.")
     try:
-
         #setting the desired position
         position = position.get('down_position')
         rospy.loginfo("=================================")
@@ -126,7 +122,7 @@ if __name__ == "__main__":
         velocity = 0.1
         mode = 8 #joint_position control
 
-        cmd.pid(mode)
+        #cmd.pid(mode)
 
         while not rospy.is_shutdown():
             cmd.stand_still(3)
@@ -135,6 +131,7 @@ if __name__ == "__main__":
 
             #going down, faire une fonction après
             while abs(error) > 1e-3: 
+                cmd.lis_target
                 rospy.loginfo("=================================")
                 rospy.loginfo("starting motion")
                 cmd.move(velocity, mode)
