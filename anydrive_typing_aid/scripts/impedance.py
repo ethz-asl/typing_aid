@@ -6,6 +6,7 @@ from std_msgs.msg import String, Float64, Header
 import anydrive_msgs.msg as msg_defs
 from math import pi
 import numpy as np
+from scipy import signal
 
 
 position = {
@@ -51,34 +52,33 @@ class Controller:
     #     msg.pid_gains_d = float(d)
     #     self.pub_target.publish(msg)
 
-
     def error(self, mode, position, velocity, torque):
         #computes the difference between the actual position/velocity/torque and the desired one 
 
         if self.joint_position is not None and position is not None:
             pass
-        if mode == 8 or mode == 12:  # Tracks joint position
+        if mode in (8,11,12):  # Tracks joint position
             #difference = r*(position - self.joint_position)
             difference = (position - self.joint_position)
             rospy.loginfo("position difference: {}".format(difference))
-        if mode == 9 or mode == 12: # Tracks joint velocity
+        if mode in (9,11,12): # Tracks joint velocity
             difference = (position - self.joint_velocity)
             rospy.loginfo("velocity difference: {}".format(difference))
-        if mode == 10 or mode == 12: # Tracks joint torque
+        if mode in (10,12): # Tracks joint torque
             difference = (position - self.joint_torque)
             rospy.loginfo("torque difference: {}".format(difference))  
 
     def move(self,mode,position,velocity, torque):
         msg = msg_defs.Command()
         msg.mode.mode = np.uint16(mode)
-        if mode == 8 or mode == 12: 
+        if mode in (8,11,12): 
             msg.joint_position = position
-        if mode == 9 or mode ==12:
+        if mode in (9,11,12):
             velocity = float(velocity)
             msg.motor_velocity = velocity
             msg.gear_velocity = velocity
             msg.joint_velocity = velocity
-        if mode == 10 or mode == 12:
+        if mode in (10,12):
             torque = float(torque)
             msg.joint_torque = torque
         self.pub_target.publish(msg)
@@ -102,46 +102,51 @@ if __name__ == "__main__":
     rospy.loginfo("=================================")
     rospy.loginfo("Controller init successful.")
     try:
-        #for now defining the variables by hand
-        rospy.loginfo("=================================")
-        rospy.loginfo("choose v_des and t_des")
-        v_des, t_des = [int(x) for x in input().split()]
-        # t_des = 0.5
-        # v_des = 0.5
-        mode = 12 #JointPositionVelocityTorque control
+        v_des = 0
+        t_des = 0
+        mode = input("Choose control mode : pos = 8 \n vel = 9 \n torque = 10 \n pos_vel = 11 \n pos_vel_t = 12 \n") 
+        if mode in (9,11,12):
+            v_des = input("desired velocity")
+        if mode in (10,12):
+            t_des = input("desired torque") 
+            # mettre le calcul là 
 
         #cmd.pid(mode)
 
         while not rospy.is_shutdown():
 
             p_des = input("Enter down position: ")
+            t=np.linspace(0.1,p_des,10)
+            i = 0
             # p_des = position["down_position"]
             cmd.listener()
             error = cmd.error(mode, p_des, v_des, t_des)
+            while abs(error)>=0.5:
+                p_next = t[i]
+                #going down, faire une fonction après
+                rospy.loginfo("=================================")
+                rospy.loginfo("starting motion")
+                cmd.move(mode,p_next, v_des, t_des)
+                cmd.listener()
+                error = cmd.error(mode, p_des, v_des, t_des)
+                i+=1
 
-            #going down, faire une fonction après
-            rospy.loginfo("=================================")
-            rospy.loginfo("starting motion")
-            cmd.move(mode,p_des, v_des, t_des)
-            cmd.listener()
-            error = cmd.error(mode, p_des, v_des, t_des)
+            # rospy.loginfo("=================================")
+            # rospy.loginfo("standing still")
+            # # cmd.stand_still(3)
+            # p_des = input("up pos ")
+            # # p_des = position["up_position"]
+            # cmd.listener()
+            # error = cmd.error(mode, p_des, v_des, t_des)
+            # #going_up faire une fonction pour ça
 
-            rospy.loginfo("=================================")
-            rospy.loginfo("standing still")
-            # cmd.stand_still(3)
-            p_des = input("up pos ")
-            # p_des = position["up_position"]
-            cmd.listener()
-            error = cmd.error(mode, p_des, v_des, t_des)
-            #going_up faire une fonction pour ça
-
-            rospy.loginfo("=================================")
-            rospy.loginfo("starting motion")
-            cmd.move(mode,p_des, v_des, t_des)
-            cmd.listener()
-            error = cmd.error(mode, p_des, v_des, t_des) 
+            # rospy.loginfo("=================================")
+            # rospy.loginfo("starting motion")
+            # cmd.move(mode,p_des, v_des, t_des)
+            # cmd.listener()
+            # error = cmd.error(mode, p_des, v_des, t_des) 
             
-            cmd.stop()
+            # cmd.stop()
 
     except rospy.ROSInterruptException:
         cmd.stop()
