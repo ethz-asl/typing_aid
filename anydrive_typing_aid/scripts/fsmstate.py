@@ -12,10 +12,10 @@ class FSM_state:
     def __init__(self):
         self.rospy.init_node('set_FSM_state_client')
     
-    def set_FSM_state(self):
-        rospy.loginfo("===========================================")
-        selection = input("Type FSM state\n ")
-        rospy.loginfo("-------------------------------------------")
+    def set_FSM_state(self, selection):
+        # rospy.loginfo("===========================================")
+        # selection = input("Type FSM state\n ")
+        # rospy.loginfo("-------------------------------------------")
         srv_name = '/anydrive/set_goal_state'
         rospy.wait_for_service(srv_name)
         try:

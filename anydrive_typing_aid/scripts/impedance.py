@@ -99,6 +99,12 @@ class Controller:
         msg = msg_defs.Command()
         msg.mode.mode = 1
         self.pub_target.publish(msg)
+        #goes to configure
+        FSM_state().set_FSM_state(3)
+
+    #https://en.wikipedia.org/wiki/Logistic_function
+    def logistic_fct(self,x,midpoint,max_val, steepness):
+        return max_val/(1+np.exp(-steepness*(x-midpoint)))
 
 if __name__ == "__main__":
     cmd = Controller()
@@ -114,40 +120,45 @@ if __name__ == "__main__":
             t_des = input("desired torque") 
         
         #setting FSM_state
-
-        FSM_state().set_FSM_state()
+        #goes into ControlOp
+        FSM_state().set_FSM_state(4)
 
         #cmd.pid(mode)
 
+        
         while not rospy.is_shutdown():
 
             p_des = input("Enter down position: ")
-            t=np.linspace(0.1,p_des,1e3)
+            t=np.linspace(0.1,t_des,1e3)
             i = 0
+
             # p_des = position["down_position"]
             cmd.listener()
             error = cmd.error(8, p_des, v_des, t_des)
+            rate = rospy.Rate(10) # 10hz
             while abs(error)>=0.01:
-                p_next = t[i]
+                t_next = cmd.logistic_fct(t[i],t_des/2,t_des,2)
                 #going down, faire une fonction après
                 rospy.loginfo("=================================")
                 rospy.loginfo("starting motion")
-                cmd.move(mode,p_next, v_des, t_des)
+                cmd.move(mode,p_des, v_des, t_next)
                 cmd.listener()
                 error = cmd.error(8, p_des, v_des, t_des)
                 i+=1
+                rate.sleep()
             cmd.stand_still(3)
-            i=0
             v_des = -v_des
-            while abs(error)>=0.01:
-                p_next = t[i]
-                #going down, faire une fonction après
-                rospy.loginfo("=================================")
-                rospy.loginfo("starting motion")
-                cmd.move(mode,p_next, v_des, t_des)
-                cmd.listener()
-                error = cmd.error(8, p_des, v_des, t_des)
-                i+=1
+            #or change the drive direction
+            # while abs(error)>=0.01:
+            #     p_next = t[i]
+            #     #going down, faire une fonction après
+            #     rospy.loginfo("=================================")
+            #     rospy.loginfo("starting motion")
+            #     cmd.move(mode,p_next, v_des, t_des)
+            #     cmd.listener()
+            #     error = cmd.error(8, p_des, v_des, t_des)
+            #     i+=1
+            #     rate.sleep()
 
     except rospy.ROSInterruptException:
         cmd.stop()
