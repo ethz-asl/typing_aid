@@ -8,6 +8,8 @@ from math import pi
 import numpy as np
 from scipy import signal
 
+from fsmstate import FSM_state
+
 
 position = {
     "up_position": 0,
@@ -110,6 +112,10 @@ if __name__ == "__main__":
             v_des = input("desired velocity")
         if mode in (10,12):
             t_des = input("desired torque") 
+        
+        #setting FSM_state
+
+        FSM_state().set_FSM_state()
 
         #cmd.pid(mode)
 
