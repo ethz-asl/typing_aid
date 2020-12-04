@@ -136,12 +136,12 @@ if __name__ == "__main__":
         
         #setting FSM_state
         #goes into ControlOp
-        fsm.FSM_state().set_FSM_state(4)
+        fsm_state = fsm.FSM_state()
+        fsm_state.set_FSM_state(4)
     
 
         #cmd.pid(mode)
 
-        
         while not rospy.is_shutdown():
 
             p_des = input("Enter down position: ")
@@ -151,7 +151,7 @@ if __name__ == "__main__":
             # p_des = position["down_position"]
             cmd.listener()
             error = cmd.error(JOINT_POSITION, p_des, v_des, t_des)
-            rate = rospy.Rate(10) # 10hz
+            rate = rospy.Rate(100) # 10hz
             while abs(error)>=0.1:
                 t_next = cmd.logistic_fct(t[i],t_des/2,t_des,1.5)
                 #going down, faire une fonction après
@@ -166,7 +166,6 @@ if __name__ == "__main__":
                 i+=1
                 rate.sleep()
             cmd.stand_still(3)
-            v_des = -v_des
 
     except rospy.ROSInterruptException:
         cmd.stop()

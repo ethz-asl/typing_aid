@@ -33,7 +33,7 @@ class FSM_state:
     #     rospy.wait_for_service(srv_name)
     #     try:
     #         set_state = rospy.ServiceProxy(srv_name, srv_defs.SendControlword)
-    #         msg.controlword = np.uint16(selection)
+    #         msg = np.uint16(selection)
     #         set_state('anydrive', msg)
     #     except rospy.ServiceException as e:
     #         print("Service call failed : %s "%e)
