@@ -16,10 +16,10 @@ JOINT_TORQUE =10
 
 # TBD
 position = {
-    "up_position": 2,
-    "down_position": 4,
-    "up_limit": 1,
-    "down_limit": 6,
+    "up_position": -4,
+    "down_position": -2,
+    "up_limit": -5,
+    "down_limit": 0,
     "v_max": 5,
     "t_min":0.3,
     "t_max":1.5
@@ -96,7 +96,7 @@ class Controller:
         self.pub_target.publish(msg)
 
     def lim_check(self,i):
-        if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"] or i == 99:
+        if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"] or i == 49:
             return True
         # elif self.joint_velocity > abs(position["v_max"]):
         #     return True
@@ -163,19 +163,21 @@ if __name__ == "__main__":
             if init:
                 i = cmd.init_pos(p_meas)
                 init = False
-
+            t=np.linspace(0.01,1,50)
             if i == 0:#go up
                 # p_des = input("Enter up position: ")
                 p_des = position["up_position"]
                 t_des = t_meas + np.sign(t_meas)*0.3
-                t=np.linspace(t_des,t_des + np.sign(t_meas)*0.1,1e2)
-                path = cmd.logistic_fct(t,t_des/1.5,t_des + np.sign(t_meas)*0.1,1.5)
+                path = cmd.logistic_fct(t,t_des/1.5,t_des + np.sign(t_meas)*0.1,1.75)
+                rospy.loginfo("going up")
+
             elif i == 1: #go down
                 # p_des = input("Enter down position: ")
                 p_des = position["down_position"]
-                t_des = t_meas - np.sign(t_meas)*0.2
-                t=np.linspace(t_des,t_des - np.sign(t_meas)*0.1,1e2)
-                path = cmd.logistic_fct(t,t_des/1.5,t_des- np.sign(t_meas)*0.1,1.5)
+                # t_des = t_meas - np.sign(t_meas)*0.1
+                t_des = t_meas
+                path = cmd.logistic_fct(t,t_des/1.5,t_des- np.sign(t_meas)*0.1,1.75)
+                rospy.loginfo("going down")
             else: 
                 raise rospy.ROSInterruptException
 
@@ -187,12 +189,9 @@ if __name__ == "__main__":
             rate = rospy.Rate(100) # 10hz
             if not init:
                 i = 0
-
+            rospy.loginfo("starting motion")    
             while abs(error)>=0.1:
                 t_next = path[i]
-                #going down, faire une fonction après
-                rospy.loginfo("=================================")
-                rospy.loginfo("starting motion")
                 cmd.move(mode,p_des, v_des, t_next)
                 t_meas = cmd.listener()
                 error = cmd.error(JOINT_POSITION, p_des, v_des, t_des)
