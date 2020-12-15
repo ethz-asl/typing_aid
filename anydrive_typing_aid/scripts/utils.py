@@ -8,33 +8,22 @@ from math import pi
 import numpy as np
 from scipy import signal
 import fsmstate as fsm
-from itertools import cycle 
+import init_mov 
 
 global JOINT_POSITION,JOINT_VELOCITY,JOINT_TORQUE
 JOINT_POSITION = 8
 JOINT_VELOCITY = 9
 JOINT_TORQUE =10
 
-# TBD
-position = {
-    "up_position": -4,
-    "down_position": -2,
-    "up_limit": -5.5,
-    "down_limit": 0,
-    "v_max": 5,
-    "t_min":0.3,
-    "t_max":1.5
-}
-
 # r = float(6e-2) #radius of spool in [m]
 
-class Controller:
+class utils(position):
 
     def __init__(self):
         self.prefix = "/anydrive"
         # drive_name = "anydrive"
 
-        rospy.init_node("controller", anonymous=True)
+        # rospy.init_node("controller", anonymous=True)
 
         # Publisher for : joint_position
         # joint_velocity
@@ -51,7 +40,7 @@ class Controller:
         self.joint_velocity = msg.state.joint_velocity
         self.joint_torque = msg.state.joint_torque
 
-        return self.joint_torque,self.joint_velocity, self.joint_position
+        return self.joint_torque, self.joint_velocity, self.joint_position
 
     # def pid(self,mode):
     #     msg = msg_defs.Command()
@@ -71,15 +60,15 @@ class Controller:
             pass
         if mode in (JOINT_POSITION,11,12):  # Tracks joint position
             #difference = r*(position - self.joint_position)
-            difference = (position - self.joint_position)
+            self.difference = (position - self.joint_position)
             rospy.loginfo("position difference: {}".format(difference))
         if mode in (JOINT_VELOCITY,11,12): # Tracks joint velocity
-            difference = (position - self.joint_velocity)
+            self.difference = (position - self.joint_velocity)
             rospy.loginfo("velocity difference: {}".format(difference))
         if mode in (JOINT_TORQUE,12): # Tracks joint torque
-            difference = (position - self.joint_torque)
+            self.difference = (position - self.joint_torque)
             rospy.loginfo("torque difference: {}".format(difference)) 
-        return difference
+        return self.difference
 
     def move(self,mode,position,velocity, torque):
         msg = msg_defs.Command()
@@ -96,7 +85,7 @@ class Controller:
             msg.joint_torque = torque
         self.pub_target.publish(msg)
 
-    def lim_check(self,i):
+    def lim_check(self,i,position):
         if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"] or i == 99:
             return True
         # elif self.joint_velocity > abs(position["v_max"]):
@@ -104,14 +93,14 @@ class Controller:
         # elif self.joint_torque > position["t_max"] or self.joint_torque < position["t_min"]:
         #     return True
             
-    def init_pos(self,p_meas):
+    def init_pos(self,p_meas,position):
         if p_meas < position["up_position"]:
-            move = 1
+            self.move = 1
         elif p_meas > position["up_position"]:
-            move = 0
+            self.move = 0
         else:
             raise rospy.ROSInterruptException
-        return move
+        return self.move
 
     def stand_still(self,time):
         rospy.loginfo("=================================")
@@ -131,79 +120,6 @@ class Controller:
 
     #https://en.wikipedia.org/wiki/Logistic_function
     def logistic_fct(self,x,midpoint,max_val, steepness):
-        return max_val/(1+np.exp(-steepness*(x-midpoint)))
+        self.fct = max_val/(1+np.exp(-steepness*(x-midpoint)))
+        return self.fct
 
-if __name__ == "__main__":
-    cmd = Controller()
-    rospy.loginfo("=================================")
-    rospy.loginfo("Controller init successful.")
-    try:
-        v_des = 0
-        t_des = 0
-        i = cycle(range(2))
-        t_meas, v_meas, p_meas = cmd.listener()
-        mode = 10
-        # mode = input("Choose control mode : \n pos = 8 \n vel = 9 \n torque = 10 \n pos_vel = 11 \n pos_vel_t = 12 \n") 
-        # if mode in (JOINT_VELOCITY,11,12):
-        #     v_des = input("desired velocity")
-        # if mode in (JOINT_TORQUE,12):
-        #     t_des = input("desired torque")
-        
-        #setting FSM_state
-        #goes into ControlOp
-        fsm_state = fsm.FSM_state()
-        fsm_state.set_FSM_state(4)
-        #cmd.pid(mode)
-        init = True
-
-        while not rospy.is_shutdown():
-            
-            i = next(i)
-            t_meas, v_meas, p_meas = cmd.listener() 
-            rospy.loginfo("measured torque: {}".format(t_meas))
-            rospy.loginfo("measured pos: {}".format(p_meas))
-
-            if init:
-                i = cmd.init_pos(p_meas)
-                init = False
-            t=np.linspace(-5,5,100)
-            if i == 0: #go up
-                # p_des = input("Enter up position: ")
-                p_des = position["up_position"]
-                t_des = t_meas + np.sign(t_meas)*0.2
-                path = cmd.logistic_fct(t,t_des/1.5,t_des + np.sign(t_meas)*0.1,0.75)
-                rospy.loginfo("going up")
-
-            elif i == 1: #go down
-                # p_des = input("Enter down position: ")
-                p_des = position["down_position"]
-                t_des = t_meas - np.sign(t_meas)*0.1
-                # t_des = t_meas
-                path = cmd.logistic_fct(-t,t_des/1.5,t_des- np.sign(t_meas)*0.1,0.75)
-                rospy.loginfo("going down")
-            else: 
-                raise rospy.ROSInterruptException
-
-            rospy.loginfo("applied torque: {}".format(t_des))
-
-            tst=input("type a number to continue ")
-
-            error = cmd.error(JOINT_POSITION, p_des, v_des, t_des)
-            rate = rospy.Rate(200) # 200hz
-
-            l = 0
-            rospy.loginfo("starting motion")    
-            while abs(error)>=0.1:
-                t_next = path[l]
-                cmd.move(mode,p_des, v_des, t_next)
-                t_meas, v_meas, p_meas = cmd.listener()
-                error = cmd.error(JOINT_POSITION, p_des, v_des, t_des)
-                rospy.loginfo("applied torque: {}".format(t_next))
-                if cmd.lim_check(l):
-                    raise rospy.ROSInterruptException
-                l+=1
-                rate.sleep()
-            # cmd.stand_still(1)
-
-    except rospy.ROSInterruptException:
-        cmd.stop()
