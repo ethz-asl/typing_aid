@@ -19,7 +19,7 @@ JOINT_TORQUE =10
 # TBD
 position = {
     "up_position": 4,
-    "down_position": -1.5,
+    "down_position": 0,
     "up_limit": 5,
     "down_limit": -2.5,
     "v_max": 5,
@@ -98,7 +98,7 @@ class Controller:
         self.pub_target.publish(msg)
 
     def lim_check(self,i):
-        if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"] or i == 99:
+        if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"] or i == 199:
             return True
         # elif self.joint_velocity > abs(position["v_max"]):
         #     return True
@@ -167,11 +167,11 @@ if __name__ == "__main__":
             if init:
                 i = cmd.init_pos(p_meas)
                 init = False
-            t=np.linspace(-5,5,100)
+            t=np.linspace(-5,5,200)
             if  i: #go up
                 # p_des = input("Enter up position: ")
                 p_des = position["up_position"]
-                t_des = t_meas + np.sign(t_meas)*0.2
+                t_des = t_meas + np.sign(t_meas)*0.3
                 path = cmd.logistic_fct(t,t_des/1.5,t_des + np.sign(t_meas)*0.1,0.75)
                 rospy.loginfo("going up")
 
@@ -203,7 +203,8 @@ if __name__ == "__main__":
                 #     raise rospy.ROSInterruptException
                 l+=1
                 rate.sleep()
-            # cmd.stand_still(1)
+            # needed to freeze motor
+            cmd.stand_still(1)
             # plt().plot(error, False)
     except rospy.ROSInterruptException:
         cmd.stop()
