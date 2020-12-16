@@ -20,9 +20,10 @@ class init_mov:
     def __init__(self):
         self.v_des, self.t_des, self.i,self.l = 0,0,0,0
 
-    def run(self,init,position):
+    def run(self,init):
 
             u= utils()
+            position = u.set_pos()
 
             while not rospy.is_shutdown():
 

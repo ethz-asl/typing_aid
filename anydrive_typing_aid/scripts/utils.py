@@ -39,8 +39,50 @@ class utils(position):
         print(self.joint_position)
         self.joint_velocity = msg.state.joint_velocity
         self.joint_torque = msg.state.joint_torque
-
         return self.joint_torque, self.joint_velocity, self.joint_position
+# mettre aussi le moteur dans une bonne config pour le tourner comme on veut (torque control and cte 0 torque applied)
+    def set_pos(self): 
+        position = {
+        "up_position": None,
+        "down_position": None,
+        "up_limit": None,
+        "down_limit": None,
+        "v_max": 5, #think of  clever way to set that
+        "t_min":0.3,
+        "t_max":1.5
+        }
+        choice = 0
+        # going into control op state 
+        fsm.FSM_state().set_FSM_state(4)
+        # sending the desired torque to the drive 
+        msg_t = msg_defs.Command()
+        msg_t.mode.mode = np.uint16(10)
+        msg_t.joint_torque = float(0)
+        self.pub_target.publish(msg_t)
+
+        #starting loop for calibration
+        while choice is not 5:
+            choice = input("Move the drive to the correct position and type the desired pos  \n 1 = up_lim \n 2 = up_pos \n 3 = down_pos \n 4 = down_lim \n 5 = exit")
+            msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", msg_defs.Reading)
+            if choice = 1:
+                position['up_limit'] = msg.state.joint_position
+            elif choice = 2:
+                position['up_position'] = msg.state.joint_position
+            elif choice = 3:
+                position['down_position'] = msg.state.joint_position
+            elif choice = 4:
+                position['down_limit'] = msg.state.joint_position
+            else:
+                choice = 5
+        #freezing the drive
+        msg = msg_defs.Command()
+        msg.mode.mode = 1
+        self.pub_target.publish(msg)
+        #going into configure state
+        fsm.FSM_state().set_FSM_state(3)
+        return position
+            
+
 
     # def pid(self,mode):
     #     msg = msg_defs.Command()

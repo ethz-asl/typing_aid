@@ -6,16 +6,6 @@ import fsmstate as fsm
 import init_mov
 import utils
 
-position = {
-    "up_position": -4,
-    "down_position": -2,
-    "up_limit": -5.5,
-    "down_limit": 0,
-    "v_max": 5,
-    "t_min":0.3,
-    "t_max":1.5
-}
-
 if __name__ == "__main__":
 
     try:
@@ -24,14 +14,14 @@ if __name__ == "__main__":
         #goes into ControlOp
         fsm.FSM_state().set_FSM_state(4)
 
-        #initialization
-        init_mov().run(True,position)
+        #initialization applying a constant torque
+        init_mov().run(True)
         rospy.loginfo("init successful")
 
         #choose the controller
 
         #constant torque controller
-        init_mov().run(False,position)
+        init_mov().run(False)
 
     except rospy.ROSInterruptException:
         utils().stop()
