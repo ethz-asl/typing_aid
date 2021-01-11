@@ -3,7 +3,7 @@
 
 import rospy
 import fsmstate as fsm
-import init_mov
+import InitMove
 import utils
 import plot
 import cte_mov
@@ -17,7 +17,9 @@ if __name__ == "__main__":
         fsm.FSM_state().set_FSM_state(4)
 
         #initialization applying a constant torque
-        init_mov().run(True)
+        # pas assez stable, à améliorer
+        # init = InitMove.init_mov()
+        # init.run(True)
         rospy.loginfo("init successful")
 
         #choose the controller
@@ -26,7 +28,7 @@ if __name__ == "__main__":
         
         #constant torque controller
         rate = rospy.Rate(200) # 200hz
-        c = cte_mov()
+        c = cte_mov.cte_mov()
         # computing the torque trajectory
         # need to set the values inside the brackets
         rospy.loginfo("computing trajectory")
@@ -41,7 +43,7 @@ if __name__ == "__main__":
         while not rospy.is_shutdown():
             c.move(y, rate, 2)
         # stop the drive at the end of the loop
-        utils().stop()
+        utils.utils().stop()
 
         # # draw the plots
         # p = plot()
@@ -52,7 +54,7 @@ if __name__ == "__main__":
         #     i = i-1
 
     except rospy.ROSInterruptException:
-        utils().stop()
+        utils.utils().stop()
 
         # TODO do the plots of torque velocity and position
         # TODO set a clock 

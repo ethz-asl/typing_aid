@@ -8,7 +8,6 @@ from math import pi
 import numpy as np
 from scipy import signal
 import fsmstate as fsm
-import init_mov 
 import pid
 
 global JOINT_POSITION,JOINT_VELOCITY,JOINT_TORQUE
@@ -18,7 +17,7 @@ JOINT_TORQUE =10
 
 # r = float(6e-2) #radius of spool in [m]
 
-class utils(position):
+class utils:
 
     def __init__(self):
         self.prefix = "/anydrive"
@@ -56,6 +55,7 @@ class utils(position):
         # going into control op state 
         fsm.FSM_state().set_FSM_state(4)
         # sending the desired torque to the drive 
+        rospy.loginfo("sending 0 torque to calibrate")
         msg_t = msg_defs.Command()
         msg_t.mode.mode = np.uint16(10)
         msg_t.joint_torque = float(0)
@@ -65,16 +65,16 @@ class utils(position):
         while choice is not 5:
             choice = input("Move the drive to the correct position and type the desired pos  \n 1 = up_lim \n 2 = up_pos \n 3 = down_pos \n 4 = down_lim \n 5 = exit")
             msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", msg_defs.Reading)
-            if choice = 1:
+            if choice == 1:
                 position['up_limit'] = msg.state.joint_position
-            elif choice = 2:
+            elif choice == 2:
                 position['up_position'] = msg.state.joint_position
-            elif choice = 3:
+            elif choice == 3:
                 position['down_position'] = msg.state.joint_position
-            elif choice = 4:
+            elif choice == 4:
                 position['down_limit'] = msg.state.joint_position
             else:
-                choice = 5
+                choice == 5
         #freezing the drive
         msg = msg_defs.Command()
         msg.mode.mode = 1
@@ -111,15 +111,15 @@ class utils(position):
             pass
         if mode in (JOINT_POSITION,11,12):  # Tracks joint position
             #difference = r*(position - self.joint_position)
-            self.difference = (position - self.joint_position)
+            difference = (position - self.joint_position)
             rospy.loginfo("position difference: {}".format(difference))
         if mode in (JOINT_VELOCITY,11,12): # Tracks joint velocity
-            self.difference = (position - self.joint_velocity)
+            difference = (position - self.joint_velocity)
             rospy.loginfo("velocity difference: {}".format(difference))
         if mode in (JOINT_TORQUE,12): # Tracks joint torque
-            self.difference = (position - self.joint_torque)
+            difference = (position - self.joint_torque)
             rospy.loginfo("torque difference: {}".format(difference)) 
-        return self.difference
+        return difference
 
     def move(self,mode,position,velocity, torque):
         msg = msg_defs.Command()
@@ -146,12 +146,12 @@ class utils(position):
             
     def init_pos(self,p_meas,position):
         if p_meas < position["up_position"]:
-            self.move = 1
+            self.go = 1
         elif p_meas > position["up_position"]:
-            self.move = 0
+            self.go = 0
         else:
             raise rospy.ROSInterruptException
-        return self.move
+        return self.go
 
     def stand_still(self,time):
         rospy.loginfo("=================================")
@@ -201,14 +201,14 @@ class utils(position):
 
     # to generate straight line. Duration in s.
     def const(self,tau, t0, t_end):
-        x = np.linspace(tau,tau, t_end-t_0+1)
-        y = np.arrange(t_0, t_end+1,1)
+        x = np.linspace(tau,tau, t_end-t0+1)
+        y = np.arange(t0, t_end+1,1)
         return x,y
 
     # put the pieces together
-    def torque_profile(y1,y2,y3,x1,x2,x3):
-        assert y1[-1] == y2[0] and y2[-1] == y3[0]
-        assert x1[-1] == x2[0] and x2[-1] == x3[0]
+    def torque_profile(self,y1,y2,y3,x1,x2,x3):
+        # assert y1[-1] == y2[0] and y2[-1] == y3[0]
+        # assert x1[-1] == x2[0] and x2[-1] == x3[0]
         x = np.concatenate((x1,x2,x3))
         y = np.concatenate((y1,y2,y3))
         return x,y 

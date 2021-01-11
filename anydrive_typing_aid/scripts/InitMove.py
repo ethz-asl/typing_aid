@@ -22,12 +22,22 @@ class init_mov:
 
     def run(self,init):
 
-            u= utils()
-            position = u.set_pos()
+            u= utils.utils()
+            # TODO corriger parce que marche pas, le drive reste frozen
+            # position = u.set_pos()
+            position = {
+                "up_position": 4,
+                "down_position": 0,
+                "up_limit": 5,
+                "down_limit": -2.5,
+                "v_max": 5,
+                "t_min":0.3,
+                "t_max":1.5
+            }
 
             while not rospy.is_shutdown():
 
-                t_meas, p_meas = u.listener() 
+                t_meas, v_meas, p_meas = u.listener() 
                 rospy.loginfo("measured torque: {}".format(t_meas))
                 rospy.loginfo("measured pos: {}".format(p_meas))
 
@@ -63,8 +73,8 @@ class init_mov:
 
                 while abs(error)>=0.1:
                     t_next = path[self.l]
-                    u.move(mode,p_des, self.v_des, t_next)
-                    t_meas = u.listener()
+                    u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
+                    t_meas, v_meas, p_meas = u.listener()
                     error = u.error(JOINT_POSITION, p_des, self.v_des, self.t_des)
                     rospy.loginfo("applied torque: {}".format(t_next))
                     if u.lim_check(self.l,position):
