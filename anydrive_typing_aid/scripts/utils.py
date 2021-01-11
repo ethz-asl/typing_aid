@@ -36,7 +36,7 @@ class utils:
     def listener(self):
         msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", msg_defs.Reading)
         self.joint_position = msg.state.joint_position
-        print(self.joint_position)
+        # print(self.joint_position)
         self.joint_velocity = msg.state.joint_velocity
         self.joint_torque = msg.state.joint_torque
         return self.joint_torque, self.joint_velocity, self.joint_position
@@ -137,12 +137,12 @@ class utils:
         self.pub_target.publish(msg)
 
     def lim_check(self,i,position):
-        if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"] or i == 99:
-            return True
+        # if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"] or i == 99:
+            # return True
         # elif self.joint_velocity > abs(position["v_max"]):
         #     return True
-        # elif self.joint_torque > position["t_max"] or self.joint_torque < position["t_min"]:
-        #     return True
+        if self.joint_torque > position["t_max"] or self.joint_torque < position["t_min"]:
+            return True
             
     def init_pos(self,p_meas,position):
         if p_meas < position["up_position"]:
@@ -201,8 +201,8 @@ class utils:
 
     # to generate straight line. Duration in s.
     def const(self,tau, t0, t_end):
-        x = np.linspace(tau,tau, t_end-t0+1)
-        y = np.arange(t0, t_end+1,1)
+        x = np.arange(t0, t_end+1,1)
+        y = np.linspace(tau,tau, t_end-t0+1)
         return x,y
 
     # put the pieces together

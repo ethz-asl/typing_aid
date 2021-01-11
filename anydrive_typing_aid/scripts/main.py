@@ -2,10 +2,12 @@
 # coding=utf-8
 
 import rospy
+import matplotlib.pyplot as plt
+
 import fsmstate as fsm
 import InitMove
 import utils
-import plot
+import plot 
 import cte_mov
 
 if __name__ == "__main__":
@@ -27,17 +29,19 @@ if __name__ == "__main__":
         # utils().pid
         
         #constant torque controller
-        rate = rospy.Rate(200) # 200hz
         c = cte_mov.cte_mov()
         # computing the torque trajectory
         # need to set the values inside the brackets
         rospy.loginfo("computing trajectory")
         t0 = 0
         t_end = 10
+        rate = rospy.Rate(2) # in hz
         tau_0 = 0.3
         tau_end = 0.7
         transition = 3
         x,y = c.compute_traj(t0,t_end, tau_0, tau_end, transition)
+        plt.plot(x,y)
+        print(x,y)
         # start the movement. For now same traj indeinitely
         rospy.loginfo("starting movement")
         while not rospy.is_shutdown():

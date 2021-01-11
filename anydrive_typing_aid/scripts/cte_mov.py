@@ -16,6 +16,16 @@ JOINT_POSITION = 8
 JOINT_VELOCITY = 9
 JOINT_TORQUE =10
 
+position = {
+                "up_position": 4,
+                "down_position": 0,
+                "up_limit": 5,
+                "down_limit": -2.5,
+                "v_max": 5,
+                "t_min":0,
+                "t_max":1
+            }
+
 class cte_mov:
     def __init__(self):
         self.v_des, self.t_des = 0,0
@@ -40,10 +50,10 @@ class cte_mov:
                 p_des =0
                 t_next = y[l]
                 self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
-                t_meas = self.u.listener()
+                t_meas, v_meas, p_meas = self.u.listener()
                 rospy.loginfo("applied torque: {}".format(t_next))
-                # if self.u.lim_check(self.l,position):
-                #     raise rospy.ROSInterruptException
+                if self.u.lim_check(l,position):
+                    raise rospy.ROSInterruptException
                 l+=1
                 rate.sleep()
                 l+=1
