@@ -9,6 +9,7 @@ import numpy as np
 from scipy import signal
 import fsmstate as fsm
 import init_mov 
+import pid
 
 global JOINT_POSITION,JOINT_VELOCITY,JOINT_TORQUE
 JOINT_POSITION = 8
@@ -95,6 +96,14 @@ class utils(position):
     #     msg.pid_gains_d = float(d)
     #     self.pub_target.publish(msg)
 
+    def set_PID(self):
+        p = input("p_gain")
+        i = input("i_gain")
+        d = input("d_gain")
+        # initialization of p_error
+        p_error = 0
+        pid(p,i,d).update(p_error)
+
     def error(self, mode, position, velocity, torque):
         #computes the difference between the actual position/velocity/torque and the desired one 
 
@@ -165,3 +174,42 @@ class utils(position):
         self.fct = max_val/(1+np.exp(-steepness*(x-midpoint)))
         return self.fct
 
+    # used to compute the point for the quadratic fct 
+    # set const to zero to begin
+    def quadratic_fct(self,t0, t_end, tau_0, tau_end):
+        t_des = abs(t0-t_end)/2 +t0
+        A = np.array([[2*t0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 2*t_end, 1, 0],
+            [t_des**2, t_des, 1, -t_des**2, -t_des, -1],
+            [2*t_des, 1, 0, -2*t_des, -1, 0],
+            [t0**2, t0, 1, 0, 0, 0],
+            [0, 0, 0, t_end**2, t_end, 1]])
+        b = np.array([0, 0, 0, 0, tau_0, tau_end])
+        b = b.transpose()
+        c = np.linalg.inv(A)
+        c = c.dot(b)
+
+        x1 = np.linspace(t0, t_des, num=20, endpoint=True)
+        y1 = c[0]*x1**2+c[1]*x1+c[2]
+
+        x2 = np.linspace(t_des, t_end, num=20, endpoint=True)
+        y2 = c[3]*x2**2+c[4]*x2+c[5]
+
+        x = np.concatenate((x1,x2))
+        y = np.concatenate((y1,y2))
+        return x,y
+
+    # to generate straight line. Duration in s.
+    def const(self,tau, t0, t_end):
+        x = np.linspace(tau,tau, t_end-t_0+1)
+        y = np.arrange(t_0, t_end+1,1)
+        return x,y
+
+    # put the pieces together
+    def torque_profile(y1,y2,y3,x1,x2,x3):
+        assert y1[-1] == y2[0] and y2[-1] == y3[0]
+        assert x1[-1] == x2[0] and x2[-1] == x3[0]
+        x = np.concatenate((x1,x2,x3))
+        y = np.concatenate((y1,y2,y3))
+        return x,y 
+        
