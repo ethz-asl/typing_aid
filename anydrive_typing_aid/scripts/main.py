@@ -22,18 +22,24 @@ if __name__ == "__main__":
 
         #choose the controller
         # PID controller
-        utils().pid
+        # utils().pid
+        
         #constant torque controller
         rate = rospy.Rate(200) # 200hz
         c = cte_mov()
         # computing the torque trajectory
         # need to set the values inside the brackets
         rospy.loginfo("computing trajectory")
+        t0 = 0
+        t_end = 10
+        tau_0 = 0.3
+        tau_end = 0.7
+        transition = 3
         x,y = c.compute_traj(t0,t_end, tau_0, tau_end, transition)
         # start the movement. For now same traj indeinitely
         rospy.loginfo("starting movement")
         while not rospy.is_shutdown():
-            c.move(p_des, y, rate)
+            c.move(y, rate, 2)
         # stop the drive at the end of the loop
         utils().stop()
 
