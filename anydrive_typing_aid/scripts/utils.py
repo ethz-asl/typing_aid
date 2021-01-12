@@ -213,3 +213,21 @@ class utils:
         y = np.concatenate((y1,y2,y3))
         return x,y 
         
+    def sinus(self, t0, t_end, v_min, v_max):
+        # TODO put the function
+        # return x,y
+
+    def store(self, t_meas, v_meas, p_meas,l,index):
+        if l == 0 and index == False:
+            t_meas_, v_meas_, p_meas_ = [],[],[]
+            index = True
+        t_meas_.append(t_meas)
+        v_meas_.append(v_meas)
+        p_meas_.append(p_meas)
+        return t_meas_,v_meas_,p_meas_
+
+    def plot(self, x, y , title):
+        plt.plot(x,y)
+        plt.savefig(title)
+
+        
