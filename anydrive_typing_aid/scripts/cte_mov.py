@@ -39,7 +39,7 @@ class cte_mov:
         params = {
             "t0" : 0,
             "t_end" : 10,
-            "rate" : rospy.Rate(2), # in hz
+            "rate" : rospy.Rate(20), # in hz
             "tau_0" : 0.3,
             "tau_end" : 0.7,
             "transition" : 3
@@ -64,8 +64,9 @@ class cte_mov:
         rate = params["rate"]
         rospy.loginfo("computing trajectory")
         x,y = self.compute_traj()
-        l,i = 0, False 
-        while n>=0: 
+        l = 0 
+        t_meas_, v_meas_, p_meas_ = [],[],[]
+        while n>=1: 
             while l <= (len(y)-1):
                 # p_des is unsused here, just defined to make it worked
                 p_des =0
@@ -75,20 +76,19 @@ class cte_mov:
                 rospy.loginfo("applied torque: {}".format(t_next))
                 if self.u.lim_check(l,position):
                     raise rospy.ROSInterruptException
-                t_meas_,v_meas_,p_meas_ = self.u.store(t_meas, v_meas, p_meas,l,i)
+                t_meas_,v_meas_,p_meas_ = self.u.store(t_meas, v_meas, p_meas,t_meas_,v_meas_,p_meas_)
                 l+=1
                 rate.sleep()
             n = n-1
             l = 0
         # plotting the desired path
-        x = np.arange(0, len(t_meas_)+1, 1)
+        x = np.arange(0, len(t_meas_), 1)
         self.u.plot(x, y , "desired_traj.png")
         self.u.plot(x, t_meas_ , "torque.png")
 
     def run(self, n):
         rospy.loginfo("starting movement")
-        while not rospy.is_shutdown():
-            self.move(n)
+        self.move(n)
         self.u.stop()
         
 # duration variable*2 = duration to type on the tablet. If needed, can add a cte line for down torque in beteen 2 cycles

@@ -6,6 +6,7 @@ from std_msgs.msg import String, Float64, Header
 import anydrive_msgs.msg as msg_defs
 from math import pi
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy import signal
 import fsmstate as fsm
 import pid
@@ -189,10 +190,10 @@ class utils:
         c = np.linalg.inv(A)
         c = c.dot(b)
 
-        x1 = np.linspace(t0, t_des, num=20, endpoint=True)
+        x1 = np.linspace(t0, t_des, num=100, endpoint=True)
         y1 = c[0]*x1**2+c[1]*x1+c[2]
 
-        x2 = np.linspace(t_des, t_end, num=20, endpoint=True)
+        x2 = np.linspace(t_des, t_end, num=100, endpoint=True)
         y2 = c[3]*x2**2+c[4]*x2+c[5]
 
         x = np.concatenate((x1,x2))
@@ -212,21 +213,15 @@ class utils:
         x = np.concatenate((x1,x2,x3))
         y = np.concatenate((y1,y2,y3))
         return x,y 
-        
-    def sinus(self, t0, t_end, v_min, v_max):
-        # TODO put the function
-        # return x,y
 
-    def store(self, t_meas, v_meas, p_meas,l,index):
-        if l == 0 and index == False:
-            t_meas_, v_meas_, p_meas_ = [],[],[]
-            index = True
+    def store(self, t_meas, v_meas, p_meas,t_meas_,v_meas_,p_meas_):
         t_meas_.append(t_meas)
         v_meas_.append(v_meas)
         p_meas_.append(p_meas)
         return t_meas_,v_meas_,p_meas_
 
     def plot(self, x, y , title):
+        plt.figure()
         plt.plot(x,y)
         plt.savefig(title)
 

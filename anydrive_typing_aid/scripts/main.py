@@ -32,7 +32,7 @@ if __name__ == "__main__":
         
         #constant torque controller
         # start the movement. For now same traj 2 times
-        cte_mov.cte_mov().run(2)
+        cte_mov.cte_mov().run(1)
 
     except rospy.ROSInterruptException:
         utils.utils().stop()

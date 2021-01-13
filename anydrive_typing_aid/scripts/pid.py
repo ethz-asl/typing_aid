@@ -74,12 +74,13 @@ class pid:
         # set the PID gains and pid_error to 0 and does one update
         self.u.set_PID()
         # define some velocity input profile 
-        l,i = 0, False
-        while n>=0: 
+        l = 0
+        t_meas_, v_meas_, p_meas_ = [],[],[]
+        while n>=1: 
             while l <= (len(y)-1):
                 # p_des is unsused here, just defined to make it worked
                 p_des = 0
-                # x, v_des = put the function here
+                # x, v_des = put the function here for the position
                 t_meas, v_meas, p_meas = self.u.listener()
                 p_error = v_meas - v_des[l] 
                 t_next = self.update(p_error)
@@ -89,22 +90,21 @@ class pid:
                     raise rospy.ROSInterruptException
                 # store the values
                 # l à changer parce que de 0 à 10 pour l'instant
-                t_meas_,v_meas_,p_error_ = self.u.store(t_meas, v_meas, p_error,l,i)
+                t_meas_,v_meas_,p_error_ = self.u.store(t_meas, v_meas, p_error,t_meas_,v_meas_,p_meas_)
                 l+=1
                 rate.sleep()
             n = n-1 
             l = 0
 
     # plotting the desired path
-        x = np.arange(0, len(t_meas_)+1, 1)
+        x = np.arange(0, len(t_meas_), 1)
         self.u.plot(x, v_des , "desired_traj.png")
         self.u.plot(x, t_meas_ , "torque.png")
         self.u.plot(x, p_error_ , "velocity_error.png")
 
     def run(self,n):
         rospy.loginfo("starting movement")
-        while not rospy.is_shutdown():
-            self.move(n)
+        self.move(n)
         self.u.stop()
 
         
