@@ -90,6 +90,4 @@ class cte_mov:
         rospy.loginfo("starting movement")
         self.move(n)
         self.u.stop()
-        
-# duration variable*2 = duration to type on the tablet. If needed, can add a cte line for down torque in beteen 2 cycles
 # TODO check the limitations 

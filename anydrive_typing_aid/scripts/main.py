@@ -20,7 +20,7 @@ if __name__ == "__main__":
 
         # je pense que c'est inutile ici ça
         #initialization applying a constant torque
-        # pas assez stable, à améliorer
+        # pas assez stable, à améliorer, ça sert à rien, peut etre supprime
         # init = InitMove.init_mov()
         # init.run(True)
         # rospy.loginfo("init successful")

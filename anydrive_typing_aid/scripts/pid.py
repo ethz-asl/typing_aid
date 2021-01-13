@@ -42,6 +42,17 @@ class pid:
 
         }
         return params
+
+# transition time is the time needed to go from low torque to high torque
+# tau_0 is low torque value and tau_end is high torque value
+    def compute_traj(self):
+        params = self.set_param()
+        # way up : 
+        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["v_0"], params["v_end"])
+        x2,y2 = self.u.const(params["v_end"], params["t0"]+params["transition"] , params["t_end"]-params["transition"])
+        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["v_end"], params["v_0"])
+        # put everything together
+        return self.u.torque_profile(y1,y2,y3,x1,x2,x3)
     
     def update(self, p_error):
         t = time.time()
@@ -73,6 +84,11 @@ class pid:
     def move(self,n):
         # set the PID gains and pid_error to 0 and does one update
         self.u.set_PID()
+        rospy.loginfo("getting parameters")
+        params = self.set_param()
+        rate = params["rate"]
+        rospy.loginfo("computing trajectory")
+        x,p_des = self.compute_traj()
         # define some velocity input profile 
         l = 0
         t_meas_, v_meas_, p_meas_ = [],[],[]
@@ -82,7 +98,7 @@ class pid:
                 p_des = 0
                 # x, v_des = put the function here for the position
                 t_meas, v_meas, p_meas = self.u.listener()
-                p_error = v_meas - v_des[l] 
+                p_error = p_meas - p_des[l] 
                 t_next = self.update(p_error)
                 self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
                 rospy.loginfo("applied torque: {}".format(t_next))
@@ -98,7 +114,7 @@ class pid:
 
     # plotting the desired path
         x = np.arange(0, len(t_meas_), 1)
-        self.u.plot(x, v_des , "desired_traj.png")
+        self.u.plot(x, p_des , "desired_traj.png")
         self.u.plot(x, t_meas_ , "torque.png")
         self.u.plot(x, p_error_ , "velocity_error.png")
 
@@ -106,8 +122,3 @@ class pid:
         rospy.loginfo("starting movement")
         self.move(n)
         self.u.stop()
-
-        
-
-
-#pour sortir un couple il faut la relation position couple 
