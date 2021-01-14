@@ -137,14 +137,20 @@ class utils:
             msg.joint_torque = torque
         self.pub_target.publish(msg)
 
-    def lim_check(self,i,position):
-        # if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"] or i == 99:
+    def lim_check(self,position):
+        # if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"]:
             # return True
         # elif self.joint_velocity > abs(position["v_max"]):
         #     return True
         if self.joint_torque > position["t_max"] or self.joint_torque < position["t_min"]:
             return True
-            
+    # gives the value t_next when the required value is too high or too low
+    def get_lim_val(self, t_meas, position):
+        if self.joint_torque > position["t_max"]:
+            return position["t_max"]
+        if self.joint_torque < position["t_min"]:
+            return position["t_min"]
+
     def init_pos(self,p_meas,position):
         if p_meas < position["up_position"]:
             self.go = 1
@@ -189,7 +195,7 @@ class utils:
         b = b.transpose()
         c = np.linalg.inv(A)
         c = c.dot(b)
-
+        # TODO link num to sampling freq
         x1 = np.linspace(t0, t_des, num=100, endpoint=True)
         y1 = c[0]*x1**2+c[1]*x1+c[2]
 
@@ -224,5 +230,12 @@ class utils:
         plt.figure()
         plt.plot(x,y)
         plt.savefig(title)
+    
+    def check_sign(self, t_meas,t_next):
+        if t_meas-t_next) > 0:
+            return -1
+        else:
+            return 1
+
 
         

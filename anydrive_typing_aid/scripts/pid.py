@@ -39,6 +39,9 @@ class pid:
             "transition" : 3,
             "v_min" : -0.3,
             "v_max" : 0.5
+            "t_min": 0.25
+            "t_max": 0.75
+            "tol": 0.01
 
         }
         return params
@@ -68,6 +71,7 @@ class pid:
 
         self._i_error += dt * self._p_error 
         i = self._i_gain*self._i_error
+        # TODO add anti rising wind up here
 
         if self._p_error_last is None:
             self._p_error_last = 0
@@ -78,7 +82,21 @@ class pid:
         d = self._d_gain*self._d_error
 
         self.cmd = p+i+d
-        return self.cmd     
+        return self.cmd    
+
+    # t_meas is the measured curent torque, t_next is the desired torque sent to the drive, tol is the maximum delta we allow
+    # defined in params
+    def filt(self,t_meas,t_next,params):
+        # if true, values are out of bounds
+        if self.u.lim_check(params):
+            rospy.loginfo("value out of bounds")
+            t_next = get_lim_val(t_meas, params)
+        if abs(t_meas-t_next) >= params["tol"]:
+            cte = self.u.check_sign(t_meas,t_next)
+            rospy.loginfo("step to big, adapting")
+            t_next = t_meas + params["tol"]
+        return t_next
+# TODO 
 
 # n is the number of time the trajectory path (of velocity) is taken
     def move(self,n):
@@ -100,6 +118,7 @@ class pid:
                 t_meas, v_meas, p_meas = self.u.listener()
                 p_error = p_meas - p_des[l] 
                 t_next = self.update(p_error)
+                t_next = filt(t_meas,t_next,params)
                 self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
                 rospy.loginfo("applied torque: {}".format(t_next))
                 if self.u.lim_check(l,position):
