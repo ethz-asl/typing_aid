@@ -9,6 +9,8 @@ import utils
 import plot 
 import cte_mov
 import pid 
+import pos_control as p_cont
+import saver
 
 if __name__ == "__main__":
 
@@ -17,6 +19,8 @@ if __name__ == "__main__":
         #setting FSM_state
         #goes into ControlOp
         fsm.FSM_state().set_FSM_state(4)
+        # gonna run the chosen control method and output the saved values in a csv file
+        saver.save().method_selection()
 
         # je pense que c'est inutile ici ça
         #initialization applying a constant torque
@@ -32,7 +36,7 @@ if __name__ == "__main__":
         
         #constant torque controller
         # start the movement. For now same traj 2 times
-        cte_mov.cte_mov().run(1)
+        # cte_mov.cte_mov().run(1)
 
     except rospy.ROSInterruptException:
         utils.utils().stop()

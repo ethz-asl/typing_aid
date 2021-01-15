@@ -103,7 +103,7 @@ class utils:
         d = input("d_gain")
         # initialization of p_error
         p_error = 0
-        pid(p,i,d).update(p_error)
+        pid.pid(p,i,d).update(p_error)
 
     def error(self, mode, position, velocity, torque):
         #computes the difference between the actual position/velocity/torque and the desired one 
@@ -183,7 +183,7 @@ class utils:
 
     # used to compute the point for the quadratic fct 
     # set const to zero to begin
-    def quadratic_fct(self,t0, t_end, tau_0, tau_end):
+    def quadratic_fct(self,t0, t_end, tau_0, tau_end, num):
         t_des = abs(t0-t_end)/2 +t0
         A = np.array([[2*t0, 1, 0, 0, 0, 0],
             [0, 0, 0, 2*t_end, 1, 0],
@@ -195,11 +195,11 @@ class utils:
         b = b.transpose()
         c = np.linalg.inv(A)
         c = c.dot(b)
-        # TODO link num to sampling freq
-        x1 = np.linspace(t0, t_des, num=100, endpoint=True)
+
+        x1 = np.linspace(t0, t_des, num/2, endpoint=True)
         y1 = c[0]*x1**2+c[1]*x1+c[2]
 
-        x2 = np.linspace(t_des, t_end, num=100, endpoint=True)
+        x2 = np.linspace(t_des, t_end, num/2, endpoint=True)
         y2 = c[3]*x2**2+c[4]*x2+c[5]
 
         x = np.concatenate((x1,x2))
@@ -236,6 +236,3 @@ class utils:
             return -1
         else:
             return 1
-
-
-        

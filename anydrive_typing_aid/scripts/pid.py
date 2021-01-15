@@ -8,6 +8,7 @@ import numpy as np
 import time
 
 import utils
+import saver as s
 
 global JOINT_POSITION,JOINT_VELOCITY,JOINT_TORQUE
 JOINT_POSITION = 8
@@ -19,10 +20,10 @@ class pid:
         self._p_error, self._i_error, self._d_error = None, None, None
         self._p_gain, self._i_gain, self._d_gain = None, None, None
         self._last_time, self._p_error_last = None, None 
-
         self.u = utils.utils()
-
         self.set_gains(p_gain, i_gain, d_gain)
+        self.t_meas_, self.v_meas_, self.p_meas_, self.data = [],[],[],[]
+        self.p_,self.i_,self.d_ = [],[],[]
     
     def set_gains(self, p_gain, i_gain, d_gain):
         self._p_gain = p_gain
@@ -38,9 +39,9 @@ class pid:
             "v_end" : 0.7,
             "transition" : 3,
             "v_min" : -0.3,
-            "v_max" : 0.5
-            "t_min": 0.25
-            "t_max": 0.75
+            "v_max" : 0.5,
+            "t_min": 0.25,
+            "t_max": 0.75,
             "tol": 0.01
 
         }
@@ -51,13 +52,13 @@ class pid:
     def compute_traj(self):
         params = self.set_param()
         # way up : 
-        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["v_0"], params["v_end"])
+        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["v_0"], params["v_end"],position["rate"])
         x2,y2 = self.u.const(params["v_end"], params["t0"]+params["transition"] , params["t_end"]-params["transition"])
-        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["v_end"], params["v_0"])
+        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["v_end"], params["v_0"],position["rate"])
         # put everything together
         return self.u.torque_profile(y1,y2,y3,x1,x2,x3)
     
-    def update(self, p_error):
+    def update(self, p_error, wind_val = 0):
         t = time.time()
         if self._last_time is None:
             self._last_time = t
@@ -71,7 +72,8 @@ class pid:
 
         self._i_error += dt * self._p_error 
         i = self._i_gain*self._i_error
-        # TODO add anti rising wind up here
+        
+        i = self.antiWindup(i, wind_val)
 
         if self._p_error_last is None:
             self._p_error_last = 0
@@ -80,6 +82,8 @@ class pid:
         self._d_error = (self._p_error-self._p_error_last)/dt
 
         d = self._d_gain*self._d_error
+
+        self.p_,self.i_,self.d_ = self.u.store(p,i,d,,self.p_,self.i_,self.d_)
 
         self.cmd = p+i+d
         return self.cmd    
@@ -96,7 +100,14 @@ class pid:
             rospy.loginfo("step to big, adapting")
             t_next = t_meas + params["tol"]
         return t_next
-# TODO 
+
+    def antiWindup(self, i, wind_val):
+        if i >= wind_val:
+            i = wind_val
+        elif i <= -wind_val:
+            i = -wind_val
+        return i
+
 
 # n is the number of time the trajectory path (of velocity) is taken
     def move(self,n):
@@ -109,7 +120,6 @@ class pid:
         x,p_des = self.compute_traj()
         # define some velocity input profile 
         l = 0
-        t_meas_, v_meas_, p_meas_ = [],[],[]
         while n>=1: 
             while l <= (len(y)-1):
                 # p_des is unsused here, just defined to make it worked
@@ -121,21 +131,26 @@ class pid:
                 t_next = filt(t_meas,t_next,params)
                 self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
                 rospy.loginfo("applied torque: {}".format(t_next))
-                if self.u.lim_check(l,position):
+                if self.u.lim_check(l,params):
                     raise rospy.ROSInterruptException
                 # store the values
                 # l à changer parce que de 0 à 10 pour l'instant
-                t_meas_,v_meas_,p_error_ = self.u.store(t_meas, v_meas, p_error,t_meas_,v_meas_,p_meas_)
+                self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(t_meas, v_meas, p_error,self.t_meas_, self.v_meas_, self.p_meas_)
                 l+=1
                 rate.sleep()
             n = n-1 
             l = 0
 
     # plotting the desired path
-        x = np.arange(0, len(t_meas_), 1)
+        x = np.arange(0, len(self.t_meas_), 1)
         self.u.plot(x, p_des , "desired_traj.png")
-        self.u.plot(x, t_meas_ , "torque.png")
-        self.u.plot(x, p_error_ , "velocity_error.png")
+        self.u.plot(x, self.t_meas_ , "torque.png")
+        self.u.plot(x, self.p_error_ , "velocity_error.png")
+
+    # saving the data
+        self.data = s.save().add_data_col([self.t_meas_,self.v_meas_,self.p_meas_], ax = 0)
+        # saves pid gains in another row (=below)
+        self.data = s.save().add_data_col([self.p_,self.i_,self.d_], ax = 0)
 
     def run(self,n):
         rospy.loginfo("starting movement")

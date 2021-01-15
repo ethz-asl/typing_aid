@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 
 import fsmstate as fsm
 import utils
-import saver as s
 
 global JOINT_POSITION,JOINT_VELOCITY,JOINT_TORQUE
 JOINT_POSITION = 8
@@ -30,7 +29,7 @@ position = {
                 "t_max":1
             }
 
-class cte_mov:
+class pos_mov:
     def __init__(self):
         self.v_des, self.t_des = 0,0
         self.u = utils.utils()
@@ -41,20 +40,21 @@ class cte_mov:
             "t0" : 0,
             "t_end" : 10,
             "rate" : rospy.Rate(20), # in hz
-            "tau_0" : 0.3,
-            "tau_end" : 0.7,
+            # TODO measure these values and put them here
+            "p_0" : 4,
+            "p_end" : 10,
             "transition" : 3
         }
         return params
 
-# transition time is the time needed to go from low torque to high torque
-# tau_0 is low torque value and tau_end is high torque value
+# transition time is the time needed to go from low pos to high pos
+# p_0 is low torque value and p_end is high torque value
     def compute_traj(self):
         params = self.set_param()
         # way up : 
-        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["tau_0"], params["tau_end"],position["rate"])
-        x2,y2 = self.u.const(params["tau_end"], params["t0"]+params["transition"] , params["t_end"]-params["transition"])
-        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["tau_end"], params["tau_0"],position["rate"])
+        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["p_0"], params["p_end"],position["rate"])
+        x2,y2 = self.u.const(params["p_end"], params["t0"]+params["transition"] , params["t_end"]-params["transition"])
+        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["p_end"], params["p_0"],position["rate"])
         # put everything together
         return self.u.torque_profile(y1,y2,y3,x1,x2,x3)
 
@@ -68,15 +68,15 @@ class cte_mov:
         l = 0 
         while n>=1: 
             while l <= (len(y)-1):
-                # p_des is unsused here, just defined to make it worked
-                p_des =0
-                t_next = y[l]
-                self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
+                # t_next is unsused here, just defined to make it worked
+                p_des = y[l]
+                t_next = 0
+                self.u.move(JOINT_POSITION,p_des, self.v_des, t_next)
                 t_meas, v_meas, p_meas = self.u.listener()
-                rospy.loginfo("applied torque: {}".format(t_next))
+                rospy.loginfo("desired position: {}".format(t_next))
                 if self.u.lim_check(l,position):
                     raise rospy.ROSInterruptException
-                self.t_meas_,self.v_meas_,self.p_meas_ = self.u.store(t_meas, v_meas, p_meas,self.t_meas_, self.v_meas_, self.p_meas_)
+                self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(t_meas, v_meas, p_meas,self.t_meas_, self.v_meas_, self.p_meas_)
                 l+=1
                 rate.sleep()
             n = n-1
@@ -84,7 +84,7 @@ class cte_mov:
         # plotting the desired path
         x = np.arange(0, len(self.t_meas_), 1)
         self.u.plot(x, y , "desired_traj.png")
-        self.u.plot(x, self.t_meas_ , "torque.png")
+        self.u.plot(x, self.p_meas_ , "position.png")
 
         #concatenating the data
         self.data = s.save().add_data_col([self.t_meas_,self.v_meas_,self.p_meas_], ax = 0)
@@ -93,5 +93,4 @@ class cte_mov:
         rospy.loginfo("starting movement")
         self.move(n)
         self.u.stop()
-        return self.data 
 # TODO check the limitations 
