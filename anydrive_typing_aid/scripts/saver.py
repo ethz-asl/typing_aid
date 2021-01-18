@@ -44,6 +44,3 @@ class save:
     def save_to_csv(self):
         df = np.array(self.data)
         np.savetxt('data.csv', df, delimiter=',')
-
-    
-    

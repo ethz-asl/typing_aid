@@ -40,5 +40,3 @@ if __name__ == "__main__":
 
     except rospy.ROSInterruptException:
         utils.utils().stop()
-
-        # TODO set a clock => ptetre pas nécessaire. a voir 
