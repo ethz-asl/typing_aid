@@ -35,6 +35,7 @@ class pid:
             "t0" : 0,
             "t_end" : 10,
             "rate" : rospy.Rate(2), # in hz
+            "num" : 200,
             "v_0" : 0.3,
             "v_end" : 0.7,
             "transition" : 3,
@@ -52,9 +53,9 @@ class pid:
     def compute_traj(self):
         params = self.set_param()
         # way up : 
-        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["v_0"], params["v_end"],position["rate"])
+        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["v_0"], params["v_end"],params["num"])
         x2,y2 = self.u.const(params["v_end"], params["t0"]+params["transition"] , params["t_end"]-params["transition"])
-        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["v_end"], params["v_0"],position["rate"])
+        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["v_end"], params["v_0"],params["num"])
         # put everything together
         return self.u.torque_profile(y1,y2,y3,x1,x2,x3)
     
@@ -83,7 +84,7 @@ class pid:
 
         d = self._d_gain*self._d_error
 
-        self.p_,self.i_,self.d_ = self.u.store(p,i,d,,self.p_,self.i_,self.d_)
+        self.p_,self.i_,self.d_ = self.u.store(p,i,d,self.p_,self.i_,self.d_)
 
         self.cmd = p+i+d
         return self.cmd    
@@ -131,7 +132,7 @@ class pid:
                 t_next = filt(t_meas,t_next,params)
                 self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
                 rospy.loginfo("applied torque: {}".format(t_next))
-                if self.u.lim_check(l,params):
+                if self.u.lim_check(params):
                     raise rospy.ROSInterruptException
                 # store the values
                 # l à changer parce que de 0 à 10 pour l'instant

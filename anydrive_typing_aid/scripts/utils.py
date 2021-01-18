@@ -183,8 +183,8 @@ class utils:
 
     # used to compute the point for the quadratic fct 
     # set const to zero to begin
-    def quadratic_fct(self,t0, t_end, tau_0, tau_end, num):
-        t_des = abs(t0-t_end)/2 +t0
+    def quadratic_fct(self,t0, t_end, tau_0, tau_end, sampling_time):
+        t_des = float(t_end-t0)/2.0 +t0
         A = np.array([[2*t0, 1, 0, 0, 0, 0],
             [0, 0, 0, 2*t_end, 1, 0],
             [t_des**2, t_des, 1, -t_des**2, -t_des, -1],
@@ -196,10 +196,14 @@ class utils:
         c = np.linalg.inv(A)
         c = c.dot(b)
 
-        x1 = np.linspace(t0, t_des, num/2, endpoint=True)
+        duration = t_end - t0
+        num_samples = round(float(duration) / float(sampling_time))
+        half_num_samples = int(num_samples/2.0)
+
+        x1 = np.linspace(t0, t_des, half_num_samples, endpoint=True)
         y1 = c[0]*x1**2+c[1]*x1+c[2]
 
-        x2 = np.linspace(t_des, t_end, num/2, endpoint=True)
+        x2 = np.linspace(t_des, t_end, half_num_samples, endpoint=True)
         y2 = c[3]*x2**2+c[4]*x2+c[5]
 
         x = np.concatenate((x1,x2))
@@ -207,9 +211,11 @@ class utils:
         return x,y
 
     # to generate straight line. Duration in s.
-    def const(self,tau, t0, t_end):
-        x = np.arange(t0, t_end+1,1)
-        y = np.linspace(tau,tau, t_end-t0+1)
+    def const(self,tau, t0, t_end, sampling_time):
+        duration = t_end - t0
+        num_samples = round(duration / sampling_time)
+        x = np.linspace(t0, t_end, num_samples, endpoint=True)
+        y = tau * np.ones(int(num_samples))
         return x,y
 
     # put the pieces together
@@ -232,7 +238,7 @@ class utils:
         plt.savefig(title)
     
     def check_sign(self, t_meas,t_next):
-        if t_meas-t_next) > 0:
+        if (t_meas-t_next) > 0:
             return -1
         else:
             return 1

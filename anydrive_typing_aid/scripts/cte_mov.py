@@ -2,10 +2,12 @@
 # coding=utf-8
 
 import rospy
-from std_msgs.msg import String, Float64, Header
+from std_msgs.msg import String, Float64, Header, Empty
 import anydrive_msgs.msg as msg_defs
 from math import pi
 import numpy as np
+import pandas as pd
+import time
 from scipy import signal
 import matplotlib
 matplotlib.use('Agg')
@@ -32,66 +34,94 @@ position = {
 
 class cte_mov:
     def __init__(self):
-        self.v_des, self.t_des = 0,0
+        self.p_des,self.v_des, self.t_des = 0,0,0
         self.u = utils.utils()
         self.t_meas_, self.v_meas_, self.p_meas_, self.data = [],[],[],[]
-    
-    def set_param(self):
-        params = {
-            "t0" : 0,
-            "t_end" : 10,
-            "rate" : rospy.Rate(20), # in hz
-            "tau_0" : 0.3,
-            "tau_end" : 0.7,
-            "transition" : 3
+
+        self.param = {
+            "t0" : 0.0,
+            "t_end" : 1.0,
+            "rate" : 25, # in hz
+            "tau_0" : 0.5,
+            "tau_end" : 0.9,
+            "transition" : 0.2
         }
-        return params
+
+        self.sampling_time = 1.0 / self.param["rate"]
+        rate_hz = self.param["rate"]
+        self.rate = rospy.Rate(rate_hz)
+        rospy.loginfo("computing trajectory")
+        self.x,self.y = self.compute_traj()
+        self.total_steps = len(self.y)
+
+        rospy.Subscriber("lift_arm", Empty, self.callback)
+        rospy.loginfo("Controller init finished")
+
+        self.steps_left = 0
 
 # transition time is the time needed to go from low torque to high torque
 # tau_0 is low torque value and tau_end is high torque value
     def compute_traj(self):
-        params = self.set_param()
         # way up : 
-        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["tau_0"], params["tau_end"],position["rate"])
-        x2,y2 = self.u.const(params["tau_end"], params["t0"]+params["transition"] , params["t_end"]-params["transition"])
-        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["tau_end"], params["tau_0"],position["rate"])
+        x1,y1 = self.u.quadratic_fct(self.param["t0"], self.param["t0"]+self.param["transition"], self.param["tau_0"], self.param["tau_end"], self.sampling_time)
+        x2,y2 = self.u.const(self.param["tau_end"], self.param["t0"]+self.param["transition"] , self.param["t_end"]-self.param["transition"],self.sampling_time)
+        x3,y3 = self.u.quadratic_fct(self.param["t_end"]-self.param["transition"],self.param["t_end"], self.param["tau_end"], self.param["tau_0"],self.sampling_time)
         # put everything together
         return self.u.torque_profile(y1,y2,y3,x1,x2,x3)
 
+    def callback(self, msg):
+        rospy.loginfo("Got triggered")
+        if self.steps_left > 0:
+            return
+        self.steps_left = self.total_steps
+
     # n is the number of times the path is taken
     def move(self, n):
-        rospy.loginfo("getting parameters")
-        params = self.set_param()
-        rate = params["rate"]
+        rate_hz = self.param["rate"]
+        rate = rospy.Rate(rate_hz)
         rospy.loginfo("computing trajectory")
         x,y = self.compute_traj()
-        l = 0 
+        
         while n>=1: 
+            l = 0 
             while l <= (len(y)-1):
                 # p_des is unsused here, just defined to make it worked
                 p_des =0
                 t_next = y[l]
                 self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
                 t_meas, v_meas, p_meas = self.u.listener()
-                rospy.loginfo("applied torque: {}".format(t_next))
-                if self.u.lim_check(l,position):
+                # rospy.loginfo("applied torque: {}".format(t_next))
+                if self.u.lim_check(position):
                     raise rospy.ROSInterruptException
                 self.t_meas_,self.v_meas_,self.p_meas_ = self.u.store(t_meas, v_meas, p_meas,self.t_meas_, self.v_meas_, self.p_meas_)
                 l+=1
                 rate.sleep()
             n = n-1
-            l = 0
         # plotting the desired path
         x = np.arange(0, len(self.t_meas_), 1)
         self.u.plot(x, y , "desired_traj.png")
         self.u.plot(x, self.t_meas_ , "torque.png")
 
         #concatenating the data
-        self.data = s.save().add_data_col([self.t_meas_,self.v_meas_,self.p_meas_], ax = 0)
+        data_concat = np.array((y,self.t_meas_,self.v_meas_,self.p_meas_)).T
+        data_pd = pd.DataFrame(data=data_concat, columns=("commanded torque","torque","velovity","position"))
+        data_pd.to_csv("test_out.csv")
 
-    def run(self, n):
+    def run(self):
         rospy.loginfo("starting movement")
-        self.move(n)
-        self.u.stop()
-        return self.data 
+        # self.move(n)
+        try:
+            while not rospy.is_shutdown():
+                if self.steps_left > 0:
+                    # Moving up
+                    t_next = self.y[self.total_steps - self.steps_left]
+                    self.u.move(JOINT_TORQUE,self.p_des, self.v_des, t_next)
+                    self.steps_left -= 1
+                else:
+                    self.u.move(JOINT_TORQUE,self.p_des, self.v_des, self.param["tau_0"])
+                self.rate.sleep()
+
+        except rospy.ROSInterruptException:
+            self.u.stop()
+
 # TODO check the limitations 

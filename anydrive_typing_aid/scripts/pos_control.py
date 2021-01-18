@@ -40,6 +40,7 @@ class pos_mov:
             "t0" : 0,
             "t_end" : 10,
             "rate" : rospy.Rate(20), # in hz
+            "num" : 200,
             # TODO measure these values and put them here
             "p_0" : 4,
             "p_end" : 10,
@@ -52,9 +53,9 @@ class pos_mov:
     def compute_traj(self):
         params = self.set_param()
         # way up : 
-        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["p_0"], params["p_end"],position["rate"])
+        x1,y1 = self.u.quadratic_fct(params["t0"], params["t0"]+params["transition"], params["p_0"], params["p_end"],params["num"])
         x2,y2 = self.u.const(params["p_end"], params["t0"]+params["transition"] , params["t_end"]-params["transition"])
-        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["p_end"], params["p_0"],position["rate"])
+        x3,y3 = self.u.quadratic_fct(params["t_end"]-params["transition"],params["t_end"], params["p_end"], params["p_0"],params["num"])
         # put everything together
         return self.u.torque_profile(y1,y2,y3,x1,x2,x3)
 
@@ -74,7 +75,7 @@ class pos_mov:
                 self.u.move(JOINT_POSITION,p_des, self.v_des, t_next)
                 t_meas, v_meas, p_meas = self.u.listener()
                 rospy.loginfo("desired position: {}".format(t_next))
-                if self.u.lim_check(l,position):
+                if self.u.lim_check(position):
                     raise rospy.ROSInterruptException
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(t_meas, v_meas, p_meas,self.t_meas_, self.v_meas_, self.p_meas_)
                 l+=1

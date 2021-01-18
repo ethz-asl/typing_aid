@@ -4,13 +4,15 @@
 import rospy
 
 import fsmstate as fsm
-import InitMove
+# import InitMove
 import utils
 import plot 
 import cte_mov
 import pid 
 import pos_control as p_cont
 import saver
+import cte_mov
+
 
 if __name__ == "__main__":
 
@@ -20,7 +22,10 @@ if __name__ == "__main__":
         #goes into ControlOp
         fsm.FSM_state().set_FSM_state(4)
         # gonna run the chosen control method and output the saved values in a csv file
-        saver.save().method_selection()
+        # saver.save().method_selection()
+        ctrl = cte_mov.cte_mov()
+        ctrl.run()
+        # rospy.spin()
 
         # je pense que c'est inutile ici ça
         #initialization applying a constant torque
