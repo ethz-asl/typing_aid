@@ -7,16 +7,15 @@ import anydrive_msgs.msg as msg_defs
 from math import pi
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import signal
+from datetime import datetime
 import fsmstate as fsm
 import pid
+
 
 global JOINT_POSITION,JOINT_VELOCITY,JOINT_TORQUE
 JOINT_POSITION = 8
 JOINT_VELOCITY = 9
 JOINT_TORQUE =10
-
-# r = float(6e-2) #radius of spool in [m]
 
 class utils:
 
@@ -42,38 +41,31 @@ class utils:
         self.joint_torque = msg.state.joint_torque
         return self.joint_torque, self.joint_velocity, self.joint_position
 # mettre aussi le moteur dans une bonne config pour le tourner comme on veut (torque control and cte 0 torque applied)
-    def set_pos(self): 
-        position = {
-        "up_position": None,
-        "down_position": None,
-        "up_limit": None,
-        "down_limit": None,
-        "v_max": 5, #think of  clever way to set that
-        "t_min":0.3,
-        "t_max":1.5
-        }
-        choice = 0
+    def set_pos(self, param): 
+        rate = param["rate"]
+        choice = None 
         # going into control op state 
         fsm.FSM_state().set_FSM_state(4)
-        # sending the desired torque to the drive 
-        rospy.loginfo("sending 0 torque to calibrate")
-        msg_t = msg_defs.Command()
-        msg_t.mode.mode = np.uint16(10)
-        msg_t.joint_torque = float(0)
-        self.pub_target.publish(msg_t)
-
         #starting loop for calibration
         while choice is not 5:
             choice = input("Move the drive to the correct position and type the desired pos  \n 1 = up_lim \n 2 = up_pos \n 3 = down_pos \n 4 = down_lim \n 5 = exit")
             msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", msg_defs.Reading)
+            while not choice:
+                # sending the desired torque to the drive 
+                rospy.loginfo("sending 0 torque to calibrate")
+                msg_t = msg_defs.Command()
+                msg_t.mode.mode = np.uint16(10)
+                msg_t.joint_torque = float(0)
+                self.pub_target.publish(msg_t)
+                rate.sleep()
             if choice == 1:
-                position['up_limit'] = msg.state.joint_position
+                param['x_end_lim'] = msg.state.joint_position
             elif choice == 2:
-                position['up_position'] = msg.state.joint_position
+                param['x_end'] = msg.state.joint_position
             elif choice == 3:
-                position['down_position'] = msg.state.joint_position
+                param['x_0'] = msg.state.joint_position
             elif choice == 4:
-                position['down_limit'] = msg.state.joint_position
+                param['x_0_lim'] = msg.state.joint_position
             else:
                 choice == 5
         #freezing the drive
@@ -82,10 +74,10 @@ class utils:
         self.pub_target.publish(msg)
         #going into configure state
         fsm.FSM_state().set_FSM_state(3)
-        return position
+        return param
             
 
-
+    # to change pid gains from motor
     # def pid(self,mode):
     #     msg = msg_defs.Command()
     #     msg.mode.mode = np.uint16(mode) 
@@ -105,22 +97,22 @@ class utils:
         p_error = 0
         pid.pid(p,i,d).update(p_error)
 
-    def error(self, mode, position, velocity, torque):
-        #computes the difference between the actual position/velocity/torque and the desired one 
+    # def error(self, mode, position, velocity, torque):
+    #     #computes the difference between the actual position/velocity/torque and the desired one 
 
-        if self.joint_position is not None and position is not None:
-            pass
-        if mode in (JOINT_POSITION,11,12):  # Tracks joint position
-            #difference = r*(position - self.joint_position)
-            difference = (position - self.joint_position)
-            rospy.loginfo("position difference: {}".format(difference))
-        if mode in (JOINT_VELOCITY,11,12): # Tracks joint velocity
-            difference = (position - self.joint_velocity)
-            rospy.loginfo("velocity difference: {}".format(difference))
-        if mode in (JOINT_TORQUE,12): # Tracks joint torque
-            difference = (position - self.joint_torque)
-            rospy.loginfo("torque difference: {}".format(difference)) 
-        return difference
+    #     if self.joint_position is not None and position is not None:
+    #         pass
+    #     if mode in (JOINT_POSITION,11,12):  # Tracks joint position
+    #         #difference = r*(position - self.joint_position)
+    #         difference = (position - self.joint_position)
+    #         rospy.loginfo("position difference: {}".format(difference))
+    #     if mode in (JOINT_VELOCITY,11,12): # Tracks joint velocity
+    #         difference = (position - self.joint_velocity)
+    #         rospy.loginfo("velocity difference: {}".format(difference))
+    #     if mode in (JOINT_TORQUE,12): # Tracks joint torque
+    #         difference = (position - self.joint_torque)
+    #         rospy.loginfo("torque difference: {}".format(difference)) 
+    #     return difference
 
     def move(self,mode,position,velocity, torque):
         msg = msg_defs.Command()
@@ -151,26 +143,27 @@ class utils:
         if self.joint_torque < position["t_min"]:
             return position["t_min"]
 
-    def init_pos(self,p_meas,position):
-        if p_meas < position["up_position"]:
-            self.go = 1
-        elif p_meas > position["up_position"]:
-            self.go = 0
-        else:
-            raise rospy.ROSInterruptException
-        return self.go
+    # def init_pos(self,p_meas,position):
+    #     if p_meas < position["up_position"]:
+    #         self.go = 1
+    #     elif p_meas > position["up_position"]:
+    #         self.go = 0
+    #     else:
+    #         raise rospy.ROSInterruptException
+    #     return self.go
 
-    def stand_still(self,time):
-        rospy.loginfo("=================================")
-        rospy.loginfo("standing still")
-        msg = msg_defs.Command()
-        msg.mode.mode = 1
-        self.pub_target.publish(msg)
-        rospy.sleep(time)#in seconds
+    # def stand_still(self,time):
+    #     rospy.loginfo("=================================")
+    #     rospy.loginfo("standing still")
+    #     msg = msg_defs.Command()
+    #     msg.mode.mode = 1
+    #     self.pub_target.publish(msg)
+    #     rospy.sleep(time)#in seconds
 
     def stop(self):
         rospy.loginfo("Stopping drive")
         msg = msg_defs.Command()
+        # freezing the drive
         msg.mode.mode = 1
         self.pub_target.publish(msg)
         #goes to configure
@@ -213,10 +206,17 @@ class utils:
     # to generate straight line. Duration in s.
     def const(self,tau, t0, t_end, sampling_time):
         duration = t_end - t0
-        num_samples = round(duration / sampling_time)
+        num_samples = round(float(duration) / float(sampling_time))
         x = np.linspace(t0, t_end, num_samples, endpoint=True)
         y = tau * np.ones(int(num_samples))
         return x,y
+    
+    def afine(self, a, tau_0, t0, sampling_time):
+        duration = 50
+        num_samples = round(float(duration) / float(sampling_time))
+        x = np.linspace(t0, t0 + 50, num_samples, endpoint=True)
+        y = a * x + tau_0
+        return x,y 
 
     # put the pieces together
     def torque_profile(self,y1,y2,y3,x1,x2,x3):
@@ -231,14 +231,23 @@ class utils:
         v_meas_.append(v_meas)
         p_meas_.append(p_meas)
         return t_meas_,v_meas_,p_meas_
+    
+    def store_one(self, var, array):
+        array.append(var)
+        return array
 
     def plot(self, x, y , title):
         plt.figure()
         plt.plot(x,y)
-        plt.savefig(title)
+        plt.savefig(self.get_time() + title)
     
     def check_sign(self, t_meas,t_next):
         if (t_meas-t_next) > 0:
             return -1
         else:
             return 1
+
+    def get_time(self):
+        date = datetime.now()
+        name = date.strftime("%d/%m/%Y, %H:%M:%S")
+        return name

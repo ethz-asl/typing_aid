@@ -4,44 +4,37 @@
 import rospy
 
 import fsmstate as fsm
-# import InitMove
 import utils
-import plot 
-import cte_mov
-import pid 
-import pos_control as p_cont
-import saver
-import cte_mov
+import cte_mov as c
+import pid as p
+import pos_control as pos
+import imped as i_pos
+import imped_vel as i_vel
+import friction as f
 
 
 if __name__ == "__main__":
 
     try:
         rospy.init_node("controller", anonymous=True)
+
+        controller = input("Choose the controller method  \n 1 = position controller \n 2 = torque controller \n 3 = pid controller \n 4 = impedance on pos controller \n 5 = impedance on vel controller \n 6 = friction controller \n")
+        if controller == 1:
+            pass
+        elif controller == 2:
+            ctrl = c.cte_mov()
+        elif controller == 3:
+            ctrl = p.pid()
+        elif controller == 4:
+            ctrl = i_pos.impedance()
+        elif controller == 5:
+            ctrl = i_vel.impedance_vel()
+        elif controller == 6:
+            ctrl = f.friction()
         #setting FSM_state
         #goes into ControlOp
         fsm.FSM_state().set_FSM_state(4)
-        # gonna run the chosen control method and output the saved values in a csv file
-        # saver.save().method_selection()
-        ctrl = cte_mov.cte_mov()
         ctrl.run()
-        # rospy.spin()
-
-        # je pense que c'est inutile ici ça
-        #initialization applying a constant torque
-        # pas assez stable, à améliorer, ça sert à rien, peut etre supprime
-        # init = InitMove.init_mov()
-        # init.run(True)
-        # rospy.loginfo("init successful")
-
-        #choose the controller
-
-        # PID controller
-        # pid.pid().run(2)
-        
-        #constant torque controller
-        # start the movement. For now same traj 2 times
-        # cte_mov.cte_mov().run(1)
 
     except rospy.ROSInterruptException:
         utils.utils().stop()
