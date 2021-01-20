@@ -8,7 +8,6 @@ from math import pi
 import numpy as np
 import pandas as pd
 import time
-from scipy import signal
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -28,7 +27,7 @@ position = {
                 "down_limit": -2.5,
                 "v_max": 5,
                 "t_min":0,
-                "t_max":1
+                "t_max":2
             }
 
 class cte_mov:

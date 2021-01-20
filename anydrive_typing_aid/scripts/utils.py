@@ -2,7 +2,7 @@
 # coding=utf-8
 
 import rospy
-from std_msgs.msg import String, Float64, Header
+from std_msgs.msg import String, Float64, Header, Empty
 import anydrive_msgs.msg as msg_defs
 from math import pi
 import numpy as np
@@ -40,19 +40,26 @@ class utils:
         self.joint_velocity = msg.state.joint_velocity
         self.joint_torque = msg.state.joint_torque
         return self.joint_torque, self.joint_velocity, self.joint_position
-# mettre aussi le moteur dans une bonne config pour le tourner comme on veut (torque control and cte 0 torque applied)
+
+    def callback(self, msg):
+        rospy.loginfo("saved value")
+        self.index = False
+
     def set_pos(self, param): 
-        rate = param["rate"]
+        rospy.Subscriber("lift_arm", Empty, self.callback)
+        rate = rospy.Rate(param["rate"])
         choice = None 
         # going into control op state 
         fsm.FSM_state().set_FSM_state(4)
         #starting loop for calibration
-        while choice is not 5:
-            choice = input("Move the drive to the correct position and type the desired pos  \n 1 = up_lim \n 2 = up_pos \n 3 = down_pos \n 4 = down_lim \n 5 = exit")
+        while choice < 5:
+            choice = input("Choose param to set  \n 1 = up_lim \n 2 = up_pos \n 3 = down_pos \n 4 = down_lim \n 5 = exit")
             msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", msg_defs.Reading)
-            while not choice:
+            if choice < 5:
+                self.index = True
+            while self.index:
                 # sending the desired torque to the drive 
-                rospy.loginfo("sending 0 torque to calibrate")
+                # rospy.loginfo("sending 0 torque to calibrate")
                 msg_t = msg_defs.Command()
                 msg_t.mode.mode = np.uint16(10)
                 msg_t.joint_torque = float(0)
@@ -66,17 +73,12 @@ class utils:
                 param['x_0'] = msg.state.joint_position
             elif choice == 4:
                 param['x_0_lim'] = msg.state.joint_position
-            else:
-                choice == 5
-        #freezing the drive
-        msg = msg_defs.Command()
-        msg.mode.mode = 1
-        self.pub_target.publish(msg)
-        #going into configure state
-        fsm.FSM_state().set_FSM_state(3)
-        return param
-            
 
+            msg = msg_defs.Command()
+            msg.mode.mode = 1
+            self.pub_target.publish(msg)
+        return param
+        
     # to change pid gains from motor
     # def pid(self,mode):
     #     msg = msg_defs.Command()
@@ -94,8 +96,8 @@ class utils:
         i = input("i_gain")
         d = input("d_gain")
         # initialization of p_error
-        p_error = 0
-        pid.pid(p,i,d).update(p_error)
+        p_error = input("p_error")
+        return p,i,d,p_error
 
     # def error(self, mode, position, velocity, torque):
     #     #computes the difference between the actual position/velocity/torque and the desired one 
