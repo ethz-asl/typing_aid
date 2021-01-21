@@ -8,7 +8,6 @@ from math import pi
 import numpy as np
 import pandas as pd
 import time
-from scipy import signal
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt

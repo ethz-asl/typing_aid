@@ -4,9 +4,12 @@
 #idea is to create a pid with position as input and torque as output for the going down movement.
 
 import math 
+import rospy
 import numpy as np
 import time
 import pandas as pd
+from std_msgs.msg import String, Float64, Header, Empty
+import anydrive_msgs.msg as msg_defs
 
 import utils 
 
@@ -25,20 +28,22 @@ position = {
             }
 
 class pid:
-    def __init__(self, p_gain, i_gain, d_gain):
-        self._p_error, self._i_error, self._d_error = None, None, None
+    def __init__(self):
+        self._p_error, self._i_error, self._d_error = 0, 0, 0
         self._p_gain, self._i_gain, self._d_gain = None, None, None
         self._last_time, self._p_error_last = None, None 
         self.u = utils.utils()
+        p_gain, i_gain, d_gain, self.p_error = self.u.set_PID()
         self.set_gains(p_gain, i_gain, d_gain)
-        self.t_meas_, self.v_meas_, self.p_meas_, self.p_error_= [],[],[],[]
+        self.t_meas_, self.v_meas_, self.p_meas_, self._p_error_= [],[],[],[]
         self.p_,self.i_,self.d_ = [],[],[]
         self.p_des, self.v_des = 0,0
+        
 
         self.param = {
             "t0" : 0,
             "t_end" : 10,
-            "rate" : rospy.Rate(25), # in hz
+            "rate" : 25, # in hz
             "num" : 200,
             "v_0" : 0.3,
             "v_end" : 0.7,
@@ -47,7 +52,8 @@ class pid:
             "v_max" : 0.5,
             "t_min": 0.25,
             "t_max": 0.75,
-            "tol": 0.01
+            "tol": 0.01,
+            "tau_0": 0.5
              }
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
@@ -85,7 +91,7 @@ class pid:
         if dt == 0 or math.isnan(dt) or math.isinf(dt):
             return 0
 
-        self._p_error = p_error
+        self._p_error = self.p_error
         p = self._p_gain * self._p_error
 
         self._i_error += dt * self._p_error 
@@ -147,8 +153,8 @@ class pid:
 #             while l <= (len(y)-1):
 #                 # x, v_des = put the function here for the position
 #                 t_meas, v_meas, p_meas = self.u.listener()
-#                 p_error = p_meas - p_des[l] 
-#                 t_next = self.update(p_error)
+#                 self.p_error = p_meas - p_des[l] 
+#                 t_next = self.update(self.p_error)
 #                 t_next = self.filt(t_meas,t_next)
 #                 self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
 #                 # rospy.loginfo("applied torque: {}".format(t_next))
@@ -156,7 +162,7 @@ class pid:
 #                     raise rospy.ROSInterruptException
 #                 # store the values
 #                 # l à changer parce que de 0 à 10 pour l'instant
-#                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(t_meas, v_meas, p_error,self.t_meas_, self.v_meas_, self.p_meas_)
+#                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(t_meas, v_meas, self.p_error,self.t_meas_, self.v_meas_, self.p_meas_)
 #                 l+=1
 #                 rate.sleep()
 #             n = n-1 
@@ -176,13 +182,12 @@ class pid:
     def run(self):
         rospy.loginfo("starting movement")
         try:
-            self.u.set_PID()
             while not rospy.is_shutdown():
                 if self.steps_left > 0:
                     # Moving up
                     t_meas, v_meas, p_meas = self.u.listener()
-                    p_error = p_meas - self.y[self.total_steps - self.steps_left] 
-                    t_next = self.update(p_error)
+                    self.p_error = p_meas - self.y[self.total_steps - self.steps_left] 
+                    t_next = self.update(self.p_error)
                     t_next = self.filt(t_meas,t_next)
                     self.u.move(JOINT_TORQUE,self.p_des, self.v_des, t_next)
                     self.steps_left -= 1
@@ -190,7 +195,7 @@ class pid:
                     self.u.move(JOINT_TORQUE,self.p_des, self.v_des, self.param["tau_0"])
                 t_meas, v_meas, p_meas = self.u.listener()
                 self.t_meas_,self.v_meas_,self.p_meas_ = self.u.store(t_meas, v_meas, p_meas,self.t_meas_, self.v_meas_, self.p_meas_)
-                self._p_error_ = self.u.store_one(p_error, self._p_error_)
+                self._p_error_ = self.u.store_one(self.p_error, self._p_error_)
                 # TODO changer ce position. Peut être faire une classe avec les params de chaque cas
                 if self.u.lim_check(position):
                     raise rospy.ROSInterruptException
