@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding=utf-8
 
+import atexit
+
 import rospy
 
 import fsmstate as fsm
@@ -18,9 +20,11 @@ if __name__ == "__main__":
     try:
         rospy.init_node("controller", anonymous=True)
 
-        controller = input("Choose the controller method  \n 1 = position controller \n 2 = torque controller \n 3 = pid controller \n 4 = impedance on pos controller \n 5 = impedance on vel controller \n 6 = friction controller \n")
+        controller = input(
+            "Choose the controller method  \n 1 = position controller \n 2 = torque controller \n 3 = pid controller \n 4 = impedance on pos controller \n 5 = impedance on vel controller \n 6 = friction controller \n"
+        )
         if controller == 1:
-            pass
+            ctrl = pos.pos_mov()
         elif controller == 2:
             ctrl = c.cte_mov()
         elif controller == 3:
@@ -31,8 +35,11 @@ if __name__ == "__main__":
             ctrl = i_vel.impedance_vel()
         elif controller == 6:
             ctrl = f.friction()
-        #setting FSM_state
-        #goes into ControlOp
+        # setting FSM_state
+        # goes into ControlOp
+
+        atexit.register(ctrl.stop)
+
         fsm.FSM_state().set_FSM_state(4)
         ctrl.run()
 
