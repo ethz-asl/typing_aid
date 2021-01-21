@@ -28,7 +28,7 @@ position = {
                 "down_limit": -2.5,
                 "v_max": 5,
                 "t_min":0,
-                "t_max":1
+                "t_max":2
             }
 
 class cte_mov:

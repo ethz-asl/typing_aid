@@ -94,8 +94,8 @@ class utils:
         i = input("i_gain")
         d = input("d_gain")
         # initialization of p_error
-        p_error = 0
-        pid.pid(p,i,d).update(p_error)
+        p_error = input("p_error")
+        return p,i,d,p_error
 
     # def error(self, mode, position, velocity, torque):
     #     #computes the difference between the actual position/velocity/torque and the desired one 
