@@ -218,8 +218,8 @@ class utils:
         x2 = np.linspace(t_des, t_end, half_num_samples, endpoint=True)
         y2 = c[3] * x2 ** 2 + c[4] * x2 + c[5]
 
-        x = np.concatenate((x1, x2))
-        y = np.concatenate((y1, y2))
+        x = np.concatenate((x1[:-1], x2))
+        y = np.concatenate((y1[:-1], y2))
         return x, y
 
     # to generate straight line. Duration in s.
