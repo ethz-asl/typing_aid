@@ -12,7 +12,7 @@ import pid as p
 import pos_control as pos
 import imped as i_pos
 import imped_vel as i_vel
-import friction as f
+from friction import Friction
 
 
 if __name__ == "__main__":
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         elif controller == 5:
             ctrl = i_vel.impedance_vel()
         elif controller == 6:
-            ctrl = f.friction()
+            ctrl = Friction()
         # setting FSM_state
         # goes into ControlOp
 

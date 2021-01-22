@@ -8,23 +8,21 @@ import anydrive_msgs.srv as srv_defs
 
 import numpy as np
 
+
 class FSM_state:
-    # def __init__(self):
-    #     rospy.init_node('set_FSM_state_client')
+    def __init__(self):
+        # rospy.init_node('set_FSM_state_client')
+        srv_name = "/anydrive/set_goal_state"
+        rospy.wait_for_service(srv_name)
+        self.set_state = rospy.ServiceProxy(srv_name, srv_defs.SetFsmGoalState)
 
     def set_FSM_state(self, selection):
-        # rospy.loginfo("===========================================")
-        # selection = input("Type FSM state\n ")
-        # rospy.loginfo("-------------------------------------------")
-        srv_name = '/anydrive/set_goal_state'
-        rospy.wait_for_service(srv_name)
         try:
-            set_state = rospy.ServiceProxy(srv_name, srv_defs.SetFsmGoalState)
             msg = msg_defs.FsmState()
             msg.state = np.uint8(selection)
-            set_state('anydrive', msg)
+            self.set_state("anydrive", msg)
         except rospy.ServiceException as e:
-            print("Service call failed : %s "%e)
+            print("Service call failed : %s " % e)
         rospy.loginfo("-------------------------------------------")
         rospy.loginfo("FSM state changed")
 

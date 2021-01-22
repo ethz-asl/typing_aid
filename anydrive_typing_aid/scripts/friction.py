@@ -8,74 +8,58 @@ from math import pi
 import numpy as np
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 import utils
 
-global JOINT_POSITION,JOINT_VELOCITY,JOINT_TORQUE
+global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE
 JOINT_POSITION = 8
 JOINT_VELOCITY = 9
-JOINT_TORQUE =10
+JOINT_TORQUE = 10
 
 position = {
-                "up_position": 4,
-                "down_position": 0,
-                "up_limit": 5,
-                "down_limit": -2.5,
-                "v_max": 5,
-                "t_min":0,
-                "t_max":1
-            }
+    "up_position": 4,
+    "down_position": 0,
+    "up_limit": 5,
+    "down_limit": -2.5,
+    "v_max": 5,
+    "t_min": 0,
+    "t_max": 1,
+}
 
-class impedance:
+
+class Friction:
     def __init__(self):
-        self.p_des,self.v_des, self.t_des, self.t_next = 0,0,0,0
+        self.p_des, self.v_des, self.t_des, self.t_next = 0, 0, 0, 0
         self.u = utils.utils()
-        self.t_meas_, self.v_meas_, self.p_meas_, self.t_next_ = [],[],[],[]
+        self.t_meas_, self.v_meas_, self.p_meas_, self.t_next_ = [], [], [], []
 
         self.param = {
-            "t0" : 0.0,
-            "t_end" : 1.0,
-            "rate" : 25, # in hz
-            "x_0" : None,
-            "x_end" : None,
-            "x_end_lim" : None, 
-            "x_0_lim" : None,
-            "tau_0": 0.5,
-            "transition" : 0.2,
-            "v_des" : 0.5,
-            "d_tau_up": 0.05,
-            "d_tau_down": 0.03
+            "t0": 0.0,
+            "t_end": 1.0,
+            "rate": 25,  # in hz
+            "tau_0": 0.4,
+            "tau_max": 1.0,
+            "transition": 0.2,
+            "v_des": 1.4,
+            "d_tau_up_per_sec": 0.2,
+            "d_tau_down_per_sec": 0.2,
         }
-        #getting values for None
-        self.param = self.u.set_pos(self.param)
+
+        self.d_tau_up = self.param["d_tau_up_per_sec"] / self.param["rate"]
+        self.d_tau_down = self.param["d_tau_down_per_sec"] / self.param["rate"]
+
+        self.move_up = False
+        self.current_torque = self.param["tau_0"]
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
-        rospy.loginfo("computing trajectory")
-        # self.x,self.y = self.compute_traj(self.param["a_up"], self.param["tau_0"], self.param["t0"], self.sampling_time)
-        self.total_steps = len(self.y)
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
-
-        self.steps_left = 0
-
-# transition time is the time needed to go from low torque to high torque
-# x_0 is low torque value and x_end is high torque value
-    # def compute_traj(self):
-    #     # way up : 
-    #     x1,y1 = self.u.quadratic_fct(self.param["t0"], self.param["t0"]+self.param["transition"], self.param["x_0"], self.param["x_end"], self.sampling_time)
-    #     x2,y2 = self.u.const(self.param["x_end"], self.param["t0"]+self.param["transition"] , self.param["t_end"]-self.param["transition"],self.sampling_time)
-    #     x3,y3 = self.u.quadratic_fct(self.param["t_end"]-self.param["transition"],self.param["t_end"], self.param["x_end"], self.param["x_0"],self.sampling_time)
-    #     # put everything together
-    #     return self.u.torque_profile(y1,y2,y3,x1,x2,x3)
-
-    # def compute_traj(self, a, tau_0, t0, sampling_time):
-    #     x,y = self.u.afine(a, tau_0, t0, sampling_time)
-    #     return x,y
 
     def check_velocity(self, v_meas, v_des):
         if abs(v_meas) >= v_des:
@@ -85,45 +69,68 @@ class impedance:
 
     def callback(self, msg):
         rospy.loginfo("Got triggered")
-        # TODO trouver la nouvelle condition pour ça ! 
-        if self.steps_left > 0:
-            return
-        self.steps_left = self.total_steps
-        
+        self.move_up = True
+
+    def stop(self):
+        rospy.loginfo("Exit handler")
+        self.u.stop()
+
     def run(self):
         rospy.loginfo("starting movement")
         try:
             while not rospy.is_shutdown():
-                if self.steps_left > 0:
-                    # Moving up
-                    t_meas, v_meas, p_meas = self.u.listener()
-                    while not self.check_velocity(v_meas, self.param["v_des"]):
-                        self.t_next = t_meas + self.param["d_tau_up"]
-                        self.t_next_ = self.u.store_one(self.t_next, self.t_next_)
-                        self.u.move(JOINT_TORQUE,self.p_des, self.v_des, self.t_next)
-                    self.t_next = t_meas - self.param["d_tau_down"]
-                    self.t_next_ = self.u.store_one(self.t_next, self.t_next_)
-                    self.u.move(JOINT_TORQUE,self.p_des, self.v_des, self.t_next)
-                    self.steps_left -= 1
+                _, v_meas, _ = self.u.listener()
+                if self.move_up:
+                    self.current_torque += self.d_tau_up
+                    if self.current_torque > self.param["tau_max"]:
+                        self.current_torque = self.param["tau_max"]
+                    if self.check_velocity(v_meas, self.param["v_des"]):
+                        self.move_up = False
+                        print("Finished moving up")
                 else:
-                    self.u.move(JOINT_TORQUE,self.p_des, self.v_des, self.param["tau_0"])
-                t_meas, v_meas, p_meas = self.u.listener()
-                self.t_meas_,self.v_meas_,self.p_meas_ = self.u.store(t_meas, v_meas, p_meas,self.t_meas_, self.v_meas_, self.p_meas_)
+                    self.current_torque -= self.d_tau_down
+                    if self.current_torque < self.param["tau_0"]:
+                        self.current_torque = self.param["tau_0"]
+                print("Current torque: {}".format(self.current_torque))
+                self.u.move(JOINT_TORQUE, self.p_des, self.v_des, self.current_torque)
+
+                # if self.steps_left > 0:
+                #     # Moving up
+                #     t_meas, v_meas, p_meas = self.u.listener()
+                #     while not self.check_velocity(v_meas, self.param["v_des"]):
+                #         self.t_next = t_meas + self.param["d_tau_up"]
+                #         self.t_next_ = self.u.store_one(self.t_next, self.t_next_)
+                #         self.u.move(JOINT_TORQUE, self.p_des, self.v_des, self.t_next)
+                #     self.t_next = t_meas - self.param["d_tau_down"]
+                #     self.t_next_ = self.u.store_one(self.t_next, self.t_next_)
+                #     self.u.move(JOINT_TORQUE, self.p_des, self.v_des, self.t_next)
+                #     self.steps_left -= 1
+                # else:
+                #     self.u.move(
+                #         JOINT_TORQUE, self.p_des, self.v_des, self.param["tau_0"]
+                #     )
+                # t_meas, v_meas, p_meas = self.u.listener()
+                # self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
+                #     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
+                # )
                 # TODO changer ce position. Peut être faire une classe avec les params de chaque cas
-                if self.u.lim_check(position):
-                    raise rospy.ROSInterruptException
+                # if self.u.lim_check(position):
+                #     raise rospy.ROSInterruptException
                 self.rate.sleep()
 
-            #concatenating the data
-            data_concat = np.array((self.y,self.t_meas_,self.v_meas_,self.p_meas_)).T
-            data_pd = pd.DataFrame(data=data_concat, columns=("commanded torque","torque","velovity","position"))
-            
-            pid_concat = np.array((self.t_next_)).T
-            pid_pd = pd.DataFrame(data=pid_concat, columns=("desired torque"))
+            # concatenating the data
+            # data_concat = np.array((self.y, self.t_meas_, self.v_meas_, self.p_meas_)).T
+            # data_pd = pd.DataFrame(
+            #     data=data_concat,
+            #     columns=("commanded torque", "torque", "velovity", "position"),
+            # )
 
-            all_in = pd.concat([data_pd, pid_pd], axis=1) 
-            name = self.u.get_time()
-            all_in.to_csv(name +"_friction.csv")
+            # pid_concat = np.array((self.t_next_)).T
+            # pid_pd = pd.DataFrame(data=pid_concat, columns=("desired torque"))
+
+            # all_in = pd.concat([data_pd, pid_pd], axis=1)
+            # name = self.u.get_time()
+            # all_in.to_csv(name + "_friction.csv")
 
             # # plotting the desired path
             # x = np.arange(0, len(self.t_meas_), 1)
@@ -133,4 +140,5 @@ class impedance:
         except rospy.ROSInterruptException:
             self.u.stop()
 
-# TODO check the limitations 
+
+# TODO check the limitations

@@ -39,26 +39,27 @@ class impedance_vel:
 
         self.param = {
             "t0": 0.0,
-            "t_end": 1.0,
+            "t_end": 3.0,
             "rate": 25,  # in hz
             "x_0": None,
             "x_end": None,
             "x_end_lim": None,
             "x_0_lim": None,
             "v_0": 0,
-            "v_end": 0.5,
+            "v_end": 1,
             "tau_0": 0.5,
-            "transition": 0.2,
-            "K": 0.1,
+            "transition": 1.0,
+            "K": 0.9,
         }
 
-        self.param = self.u.set_pos(self.param)
+        # self.param = self.u.set_pos(self.param)
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
         rospy.loginfo("computing trajectory")
         self.x, self.y = self.compute_traj()
+        self.u.plot(self.x, self.y, "")
         self.total_steps = len(self.y)
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
@@ -98,6 +99,10 @@ class impedance_vel:
         if self.steps_left > 0:
             return
         self.steps_left = self.total_steps
+
+    def stop(self):
+        print("Exit handler")
+        self.u.stop()
 
     def run(self):
         rospy.loginfo("starting movement")

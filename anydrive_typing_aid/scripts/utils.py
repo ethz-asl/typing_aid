@@ -181,7 +181,8 @@ class utils:
         msg.mode.mode = 1
         self.pub_target.publish(msg)
         # goes to configure
-        fsm.FSM_state().set_FSM_state(3)
+        # fsm.FSM_state().set_FSM_state(3)
+        rospy.loginfo("Stopped drive")
 
     # https://en.wikipedia.org/wiki/Logistic_function
     def logistic_fct(self, x, midpoint, max_val, steepness):

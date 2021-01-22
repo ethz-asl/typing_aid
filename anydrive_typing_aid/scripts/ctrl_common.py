@@ -9,7 +9,7 @@ class BaseController(object):
 
         self.u = utils.utils()
 
-        self.rate_hz = 20
+        self.rate_hz = 50
         self.sampling_time = 1.0 / self.rate_hz
 
         self.rate = rospy.Rate(self.rate_hz)
