@@ -17,10 +17,12 @@ import fsmstate as fsm
 import utils
 from ctrl_common import BaseController
 
-global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE
+global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE, JOINT_POSITION_VELOCITY
 JOINT_POSITION = 8
 JOINT_VELOCITY = 9
 JOINT_TORQUE = 10
+JOINT_POSITION_VELOCITY = 11
+
 
 position = {
     "up_position": 4,
@@ -76,7 +78,7 @@ class pos_mov(BaseController):
         if self.v_last == 0:
             return
         else:
-            self.v_des = (v_meas - self.v_last)*self.sampling_time
+            self.v_des = (v_meas - self.v_last) * self.sampling_time
 
     def run(self):
         rospy.loginfo("starting movement")
@@ -90,7 +92,9 @@ class pos_mov(BaseController):
                     _, v_meas, _ = self.u.listener()
                     self.p_des = self.y[self.total_steps - self.steps_left]
                     self.velocity(v_meas)
-                    self.u.move(JOINT_POSITION, self.p_des, self.v_des, self.t_des)
+                    self.u.move(
+                        JOINT_POSITION_VELOCITY, self.p_des, self.v_des, self.t_des
+                    )
                     self.steps_left -= 1
                 else:
                     self.u.move(
