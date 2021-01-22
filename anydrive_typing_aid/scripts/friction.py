@@ -8,7 +8,7 @@ from math import pi
 import numpy as np
 import pandas as pd
 import matplotlib
-from statistics import mean 
+from statistics import mean
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -33,7 +33,7 @@ position = {
 
 class Friction:
     def __init__(self):
-        self.p_des, self.v_des, self.t_des, self.t_next = 0, 0, 0, 0
+        self.p_des, self.v_des, self.t_des, self.t_next, self.avg_v = 0, 0, 0, 0, 0
         self.u = utils.utils()
         self.t_meas_, self.v_meas_, self.p_meas_, self.t_next_ = [], [], [], []
 
@@ -63,17 +63,20 @@ class Friction:
         rospy.loginfo("Controller init finished")
 
     def check_velocity(self, v_meas, v_des):
-        avg_vel = self.avg_vel()
-        if abs(avg_vel) >= v_des:
-            return True
+        if self.avg_vel():
+            if abs(self.avg_v) >= v_des:
+                return True
+            else:
+                return False
         else:
             return False
 
     def avg_vel(self):
         if len(self.v_meas_) < 5:
-            return self.v_meas_[-1]
+            return False
         else:
-            return mean(self.v_meas_[-5:])
+            self.avg_v = mean(self.v_meas_[-5:])
+            return True
 
     def callback(self, msg):
         rospy.loginfo("Got triggered")
