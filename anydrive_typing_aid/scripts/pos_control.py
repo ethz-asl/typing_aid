@@ -37,7 +37,7 @@ class pos_mov(BaseController):
     def __init__(self):
         super(pos_mov, self).__init__()
 
-        self.p_des, self.v_des, self.t_des = 0, 0, 0
+        self.p_des, self.v_des, self.t_des, self.v_last = 0, 0, 0, 0
         self.t_meas_, self.v_meas_, self.p_meas_ = [], [], []
 
         self.param = {
@@ -72,6 +72,12 @@ class pos_mov(BaseController):
         self.total_steps = len(self.y)
         self.steps_left = self.total_steps
 
+    def velocity(self, v_meas):
+        if self.v_last == 0:
+            return
+        else:
+            self.v_des = (v_meas - self.v_last)*self.sampling_time
+
     def run(self):
         rospy.loginfo("starting movement")
         try:
@@ -81,7 +87,9 @@ class pos_mov(BaseController):
             while not rospy.is_shutdown():
                 if self.steps_left > 0:
                     # Moving up
+                    _, v_meas, _ = self.u.listener()
                     self.p_des = self.y[self.total_steps - self.steps_left]
+                    self.velocity(v_meas)
                     self.u.move(JOINT_POSITION, self.p_des, self.v_des, self.t_des)
                     self.steps_left -= 1
                 else:
