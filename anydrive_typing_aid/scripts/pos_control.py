@@ -70,8 +70,9 @@ class pos_mov(BaseController):
         rospy.loginfo("Got triggered")
         t_meas, v_meas, p_meas = self.u.listener()
         self.x, self.y = self.compute_traj(p_meas)
-        self.dy = np.diff(self.y)
+        self.dy = np.diff(self.y) * self.rate_hz
         self.u.plot(self.x, self.y, "desired_traj.png")
+        self.u.plot(self.x[:-1], self.dy, "desired_vel.png")
         self.total_steps = len(self.y)
         self.steps_left = self.total_steps
 
