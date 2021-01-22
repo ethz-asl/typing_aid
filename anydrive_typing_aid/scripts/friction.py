@@ -8,6 +8,7 @@ from math import pi
 import numpy as np
 import pandas as pd
 import matplotlib
+from statistics import mean 
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -43,7 +44,7 @@ class Friction:
             "tau_0": 0.4,
             "tau_max": 1.0,
             "transition": 0.2,
-            "v_des": 1.4,
+            "v_des": 3,
             "d_tau_up_per_sec": 0.2,
             "d_tau_down_per_sec": 0.2,
         }
@@ -62,10 +63,17 @@ class Friction:
         rospy.loginfo("Controller init finished")
 
     def check_velocity(self, v_meas, v_des):
-        if abs(v_meas) >= v_des:
+        avg_vel = self.avg_vel()
+        if abs(avg_vel) >= v_des:
             return True
         else:
             return False
+
+    def avg_vel(self):
+        if len(self.v_meas_) < 5:
+            return self.v_meas_[-1]
+        else:
+            return mean(self.v_meas_[-5:])
 
     def callback(self, msg):
         rospy.loginfo("Got triggered")
@@ -79,7 +87,10 @@ class Friction:
         rospy.loginfo("starting movement")
         try:
             while not rospy.is_shutdown():
-                _, v_meas, _ = self.u.listener()
+                t_meas, v_meas, p_meas = self.u.listener()
+                self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
+                    t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
+                )
                 if self.move_up:
                     self.current_torque += self.d_tau_up
                     if self.current_torque > self.param["tau_max"]:
