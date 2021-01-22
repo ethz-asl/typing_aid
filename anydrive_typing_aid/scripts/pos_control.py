@@ -40,7 +40,7 @@ class pos_mov(BaseController):
         super(pos_mov, self).__init__()
 
         self.p_des, self.v_des, self.t_des, self.v_last = 0, 0, 0, 0
-        self.t_meas_, self.v_meas_, self.p_meas_ = [], [], []
+        self.t_meas_, self.v_meas_, self.p_meas_, self.dy = [], [], [], []
 
         self.param = {
             "t0": 0.0,
@@ -70,15 +70,10 @@ class pos_mov(BaseController):
         rospy.loginfo("Got triggered")
         t_meas, v_meas, p_meas = self.u.listener()
         self.x, self.y = self.compute_traj(p_meas)
+        self.dy = np.diff(self.y)
         self.u.plot(self.x, self.y, "desired_traj.png")
         self.total_steps = len(self.y)
         self.steps_left = self.total_steps
-
-    def velocity(self, v_meas):
-        if self.v_last == 0:
-            return
-        else:
-            self.v_des = (v_meas - self.v_last) * self.sampling_time
 
     def run(self):
         rospy.loginfo("starting movement")
@@ -89,9 +84,8 @@ class pos_mov(BaseController):
             while not rospy.is_shutdown():
                 if self.steps_left > 0:
                     # Moving up
-                    _, v_meas, _ = self.u.listener()
                     self.p_des = self.y[self.total_steps - self.steps_left]
-                    self.velocity(v_meas)
+                    self.v_des = self.dy[self.total_steps - self.steps_left]
                     self.u.move(
                         JOINT_POSITION_VELOCITY, self.p_des, self.v_des, self.t_des
                     )
