@@ -7,10 +7,6 @@ import anydrive_msgs.msg as msg_defs
 from math import pi
 import numpy as np
 import pandas as pd
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 import utils
 
@@ -19,16 +15,6 @@ global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE
 JOINT_POSITION = 8
 JOINT_VELOCITY = 9
 JOINT_TORQUE = 10
-
-position = {
-    "up_position": 4,
-    "down_position": 0,
-    "up_limit": 5,
-    "down_limit": -2.5,
-    "v_max": 5,
-    "t_min": 0,
-    "t_max": 2,
-}
 
 
 class impedance_vel:
@@ -50,6 +36,8 @@ class impedance_vel:
             "tau_0": 0.5,
             "transition": 1.0,
             "K": 0.9,
+            "tau_min": 0,
+            "tau_max": 2,
         }
 
         # self.param = self.u.set_pos(self.param)
@@ -102,6 +90,21 @@ class impedance_vel:
 
     def stop(self):
         print("Exit handler")
+        # collecting the data
+        self.u.concat_data(
+            self.y,
+            "commanded torque",
+            self.t_meas_,
+            self.v_meas_,
+            self.p_meas_,
+            self.t_next_,
+            "desired torque",
+            "_imped_vel",
+        )
+        # # plotting the desired path
+        # x = np.arange(0, len(self.t_meas_), 1)
+        # self.u.plot(x, self.y , "desired_traj.png")
+        # self.u.plot(x, self.t_meas_ , "torque.png")
         self.u.stop()
 
     def run(self):
@@ -125,32 +128,9 @@ class impedance_vel:
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
-                # TODO changer ce position. Peut être faire une classe avec les params de chaque cas
-                if self.u.lim_check(position):
+                if self.u.lim_check(self.param):
                     raise rospy.ROSInterruptException
                 self.rate.sleep()
 
-            # concatenating the data
-            data_concat = np.array((self.y, self.t_meas_, self.v_meas_, self.p_meas_)).T
-            data_pd = pd.DataFrame(
-                data=data_concat,
-                columns=("commanded torque", "torque", "velovity", "position"),
-            )
-
-            pid_concat = np.array((self.t_next_)).T
-            pid_pd = pd.DataFrame(data=pid_concat, columns=("desired torque"))
-
-            all_in = pd.concat([data_pd, pid_pd], axis=1)
-            name = self.u.get_time()
-            all_in.to_csv(name + "_imped.csv")
-
-            # # plotting the desired path
-            # x = np.arange(0, len(self.t_meas_), 1)
-            # self.u.plot(x, self.y , "desired_traj.png")
-            # self.u.plot(x, self.t_meas_ , "torque.png")
-
         except rospy.ROSInterruptException:
             self.u.stop()
-
-
-# TODO check the limitations

@@ -46,7 +46,3 @@ class BaseController(object):
 
     def run(self):
         raise NotImplementedError
-
-    def stop(self):
-        print("Exit handler")
-        self.u.stop()

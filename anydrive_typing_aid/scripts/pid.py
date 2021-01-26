@@ -17,15 +17,6 @@ global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE
 JOINT_POSITION = 8
 JOINT_VELOCITY = 9
 JOINT_TORQUE = 10
-position = {
-    "up_position": 4,
-    "down_position": 0,
-    "up_limit": 5,
-    "down_limit": -2.5,
-    "v_max": 5,
-    "t_min": 0,
-    "t_max": 1,
-}
 
 
 class pid:
@@ -50,10 +41,12 @@ class pid:
             "transition": 3,
             "v_min": -0.3,
             "v_max": 0.5,
-            "t_min": 0.25,
-            "t_max": 0.75,
+            "tau_min": 0.25,
+            "tau_max": 0.75,
             "tol": 0.01,
             "tau_0": 0.5,
+            "tau_min": 0,
+            "tau_max": 1,
         }
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
@@ -155,46 +148,29 @@ class pid:
             return
         self.steps_left = self.total_steps
 
-    # # n is the number of time the trajectory path (of velocity) is taken
-    #     def move(self,n):
-    #         # set the PID gains and pid_error to 0 and does one update
-    #         self.u.set_PID()
-    #         rospy.loginfo("getting parameters")
-    #         self.param = self.set_param()
-    #         rate = self.param["rate"]
-    #         rospy.loginfo("computing trajectory")
-    #         x,p_des = self.compute_traj()
-    #         # define some velocity input profile
-    #         l = 0
-    #         while n>=1:
-    #             while l <= (len(y)-1):
-    #                 # x, v_des = put the function here for the position
-    #                 t_meas, v_meas, p_meas = self.u.listener()
-    #                 self.p_error = p_meas - p_des[l]
-    #                 t_next = self.update(self.p_error)
-    #                 t_next = self.filt(t_meas,t_next)
-    #                 self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
-    #                 # rospy.loginfo("applied torque: {}".format(t_next))
-    #                 if self.u.lim_check(self.param):
-    #                     raise rospy.ROSInterruptException
-    #                 # store the values
-    #                 # l à changer parce que de 0 à 10 pour l'instant
-    #                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(t_meas, v_meas, self.p_error,self.t_meas_, self.v_meas_, self.p_meas_)
-    #                 l+=1
-    #                 rate.sleep()
-    #             n = n-1
-    #             l = 0
+    def stop(self):
+        rospy.loginfo("Exit handler")
+        # concatenating the data
+        data_concat = np.array((self.y, self.t_meas_, self.v_meas_, self.p_meas_)).T
+        data_pd = pd.DataFrame(
+            data=data_concat,
+            columns=("commanded torque", "torque", "velovity", "position"),
+        )
 
-    #     # plotting the desired path
-    #         x = np.arange(0, len(self.t_meas_), 1)
-    #         self.u.plot(x, p_des , "desired_traj.png")
-    #         self.u.plot(x, self.t_meas_ , "torque.png")
-    #         self.u.plot(x, self.p_error_ , "velocity_error.png")
+        pid_concat = np.array((self.p_, self.i_, self.d_, self._p_error_)).T
+        pid_pd = pd.DataFrame(
+            data=pid_concat,
+            columns=("p gain", "i gain", "d gain", "position error"),
+        )
 
-    #     # saving the data
-    #         self.data = s.save().add_data_col([self.t_meas_,self.v_meas_,self.p_meas_], ax = 0)
-    #         # saves pid gains in another row (=below)
-    #         self.data = s.save().add_data_col([self.p_,self.i_,self.d_], ax = 0)
+        all_in = pd.concat([data_pd, pid_pd], axis=1)
+        name = self.u.get_time()
+        all_in.to_csv(name + "_pid.csv")
+        # x = np.arange(0, len(self.t_meas_), 1)
+        # self.u.plot(x, self.y , "desired_traj.png")
+        # self.u.plot(x, self.t_meas_ , "torque.png")
+        # self.u.plot(x, self.p_error_ , "position_error.png")
+        self.u.stop()
 
     def run(self):
         rospy.loginfo("starting movement")
@@ -217,32 +193,9 @@ class pid:
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
                 self._p_error_ = self.u.store_one(self.p_error, self._p_error_)
-                # TODO changer ce position. Peut être faire une classe avec les params de chaque cas
-                if self.u.lim_check(position):
+                if self.u.lim_check(self.param):
                     raise rospy.ROSInterruptException
                 self.rate.sleep()
-
-            # concatenating the data
-            data_concat = np.array((self.y, self.t_meas_, self.v_meas_, self.p_meas_)).T
-            data_pd = pd.DataFrame(
-                data=data_concat,
-                columns=("commanded torque", "torque", "velovity", "position"),
-            )
-
-            pid_concat = np.array((self.p_, self.i_, self.d_, self._p_error_)).T
-            pid_pd = pd.DataFrame(
-                data=pid_concat,
-                columns=("p gain", "i gain", "d gain", "position error"),
-            )
-
-            all_in = pd.concat([data_pd, pid_pd], axis=1)
-            name = self.u.get_time()
-            all_in.to_csv(name + "_pid.csv")
-
-            # x = np.arange(0, len(self.t_meas_), 1)
-            # self.u.plot(x, self.y , "desired_traj.png")
-            # self.u.plot(x, self.t_meas_ , "torque.png")
-            # self.u.plot(x, self.p_error_ , "position_error.png")
 
         except rospy.ROSInterruptException:
             self.u.stop()

@@ -8,10 +8,6 @@ from math import pi
 import numpy as np
 import pandas as pd
 import time
-import matplotlib
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 
 import fsmstate as fsm
 import utils
@@ -20,16 +16,6 @@ global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE
 JOINT_POSITION = 8
 JOINT_VELOCITY = 9
 JOINT_TORQUE = 10
-
-position = {
-    "up_position": 4,
-    "down_position": 0,
-    "up_limit": 5,
-    "down_limit": -2.5,
-    "v_max": 5,
-    "t_min": 0,
-    "t_max": 2,
-}
 
 
 class cte_mov:
@@ -45,6 +31,8 @@ class cte_mov:
             "tau_0": 0.5,
             "tau_end": 0.9,
             "transition": 0.2,
+            "tau_min": 0,
+            "tau_max": 2,
         }
 
         self.sampling_time = 1.0 / self.param["rate"]
@@ -92,37 +80,25 @@ class cte_mov:
             return
         self.steps_left = self.total_steps
 
-    # # n is the number of times the path is taken
-    # def move(self, n):
-    #     rate_hz = self.param["rate"]
-    #     rate = rospy.Rate(rate_hz)
-    #     rospy.loginfo("computing trajectory")
-    #     x,y = self.compute_traj()
+    def stop(self):
+        rospy.loginfo("Exit handler")
+        # collecting the data
+        self.u.concat_data(
+            self.y,
+            "commanded torque",
+            self.t_meas_,
+            self.v_meas_,
+            self.p_meas_,
+            [],
+            "",
+            "_cte_mov",
+        )
+        # # plotting the desired path
+        # x = np.arange(0, len(self.t_meas_), 1)
+        # self.u.plot(x, self.y , "desired_traj.png")
+        # self.u.plot(x, self.t_meas_ , "torque.png")
 
-    #     while n>=1:
-    #         l = 0
-    #         while l <= (len(y)-1):
-    #             # p_des is unsused here, just defined to make it worked
-    #             p_des =0
-    #             t_next = y[l]
-    #             self.u.move(JOINT_TORQUE,p_des, self.v_des, t_next)
-    #             t_meas, v_meas, p_meas = self.u.listener()
-    #             # rospy.loginfo("applied torque: {}".format(t_next))
-    #             if self.u.lim_check(position):
-    #                 raise rospy.ROSInterruptException
-    #             self.t_meas_,self.v_meas_,self.p_meas_ = self.u.store(t_meas, v_meas, p_meas,self.t_meas_, self.v_meas_, self.p_meas_)
-    #             l+=1
-    #             rate.sleep()
-    #         n = n-1
-    #     # plotting the desired path
-    #     x = np.arange(0, len(self.t_meas_), 1)
-    #     self.u.plot(x, y , "desired_traj.png")
-    #     self.u.plot(x, self.t_meas_ , "torque.png")
-
-    #     #concatenating the data
-    #     data_concat = np.array((y,self.t_meas_,self.v_meas_,self.p_meas_)).T
-    #     data_pd = pd.DataFrame(data=data_concat, columns=("commanded torque","torque","velovity","position"))
-    #     data_pd.to_csv("test_out.csv")
+        self.u.stop()
 
     def run(self):
         rospy.loginfo("starting movement")
@@ -141,27 +117,9 @@ class cte_mov:
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
-                # TODO changer ce position. Peut être faire une classe avec les params de chaque cas
-                # if self.u.lim_check(position):
+                # if self.u.lim_check(self.param):
                 #     raise rospy.ROSInterruptException
                 self.rate.sleep()
 
-            # concatenating the data
-            data_concat = np.array((self.y, self.t_meas_, self.v_meas_, self.p_meas_)).T
-            data_pd = pd.DataFrame(
-                data=data_concat,
-                columns=("commanded torque", "torque", "velovity", "position"),
-            )
-            name = self.u.get_time()
-            data_pd.to_csv(name + "_cte_mov.csv")
-
-            # # plotting the desired path
-            # x = np.arange(0, len(self.t_meas_), 1)
-            # self.u.plot(x, self.y , "desired_traj.png")
-            # self.u.plot(x, self.t_meas_ , "torque.png")
-
         except rospy.ROSInterruptException:
             self.u.stop()
-
-
-# TODO check the limitations

@@ -6,6 +6,7 @@ from std_msgs.msg import String, Float64, Header, Empty
 import anydrive_msgs.msg as msg_defs
 from math import pi
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 import fsmstate as fsm
@@ -145,17 +146,17 @@ class utils:
         # elif self.joint_velocity > abs(position["v_max"]):
         #     return True
         if (
-            self.joint_torque > position["t_max"]
-            or self.joint_torque < position["t_min"]
+            self.joint_torque > position["tau_max"]
+            or self.joint_torque < position["tau_min"]
         ):
             return True
 
     # gives the value t_next when the required value is too high or too low
     def get_lim_val(self, t_meas, position):
-        if self.joint_torque > position["t_max"]:
-            return position["t_max"]
-        if self.joint_torque < position["t_min"]:
-            return position["t_min"]
+        if self.joint_torque > position["tau_max"]:
+            return position["tau_max"]
+        if self.joint_torque < position["tau_min"]:
+            return position["tau_min"]
 
     # def init_pos(self,p_meas,position):
     #     if p_meas < position["up_position"]:
@@ -271,3 +272,27 @@ class utils:
         date = datetime.now()
         name = date.strftime("%d/%m/%Y, %H:%M:%S")
         return name
+
+    def concat_data(
+        self, y, name_y, t_meas_, v_meas_, p_meas_, t_next_, add_data, name_file
+    ):
+        name = self.get_time()
+        if not y:
+            data_concat = np.array((t_meas_, v_meas_, p_meas_)).T
+            data_pd = pd.DataFrame(
+                data=data_concat,
+                columns=("torque", "velovity", "position"),
+            )
+        else:
+            data_concat = np.array((y, t_meas_, v_meas_, p_meas_)).T
+            data_pd = pd.DataFrame(
+                data=data_concat,
+                columns=(name_y, "torque", "velovity", "position"),
+            )
+        if not t_next_:
+            data_pd.to_csv(name + name_file + ".csv")
+        else:
+            other_concat = np.array((t_next_)).T
+            other_pd = pd.DataFrame(data=other_concat, columns=(add_data))
+            all_in = pd.concat([data_pd, other_pd], axis=1)
+            all_in.to_csv(name + name_file + ".csv")
