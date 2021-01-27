@@ -25,20 +25,20 @@ class impedance:
 
         self.param = {
             "t0": 0.0,
-            "t_end": 1.0,
+            "t_end": 2.0,
             "rate": 25,  # in hz
-            "x_0": None,
-            "x_end": None,
-            "x_end_lim": None,
-            "x_0_lim": None,
+            "x_end": 2.649951934814453,
+            "x_0_lim": -2.3559787273406982,
+            "x_end_lim": 5.186628818511963,
+            "x_0": 0.40113598108291626,
             "tau_0": 0.5,
-            "transition": 0.2,
-            "K": 0.1,
+            "transition": 1,
+            "K": 0.7,
             "tau_min": 0,
-            "tau_max": 2,
+            "tau_max": 3,
         }
 
-        self.param = self.u.set_pos(self.param)
+        # self.param = self.u.set_pos(self.param)
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
@@ -80,7 +80,7 @@ class impedance:
         if self.steps_left > 0:
             return
         rospy.loginfo("Got triggered")
-        t_meas, v_meas, p_meas = self.u.listener()
+        _, _, p_meas = self.u.listener()
         self.x, self.y = self.compute_traj(p_meas)
         self.u.plot(self.x, self.y, "desired_traj.png")
         self.total_steps = len(self.y)
@@ -115,6 +115,8 @@ class impedance:
                     self.t_next = self.param["K"] * (
                         self.y[self.total_steps - self.steps_left] - p_meas
                     )
+                    if self.t_next < self.param["tau_0"]:
+                        self.t_next = self.param["tau_0"]
                     self.t_next_ = self.u.store_one(self.t_next, self.t_next_)
                     self.u.move(JOINT_TORQUE, self.p_des, self.v_des, self.t_next)
                     self.steps_left -= 1
@@ -126,8 +128,8 @@ class impedance:
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
-                if self.u.lim_check(self.param):
-                    raise rospy.ROSInterruptException
+                # if self.u.lim_check(self.param):
+                #     raise rospy.ROSInterruptException
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:

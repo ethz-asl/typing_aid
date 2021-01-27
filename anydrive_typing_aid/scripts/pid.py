@@ -25,59 +25,63 @@ class pid:
         self._p_gain, self._i_gain, self._d_gain = None, None, None
         self._last_time, self._p_error_last = None, None
         self.u = utils.utils()
-        p_gain, i_gain, d_gain, self.p_error = self.u.set_PID()
-        self.set_gains(p_gain, i_gain, d_gain)
         self.t_meas_, self.v_meas_, self.p_meas_, self._p_error_ = [], [], [], []
         self.p_, self.i_, self.d_ = [], [], []
         self.p_des, self.v_des = 0, 0
 
         self.param = {
-            "t0": 0,
-            "t_end": 10,
+            "t0": 0.0,
+            "t_end": 1.0,
             "rate": 25,  # in hz
-            "num": 200,
-            "v_0": 0.3,
-            "v_end": 0.7,
-            "transition": 3,
-            "v_min": -0.3,
-            "v_max": 0.5,
+            "x_end": -1.5459411144256592,
+            "x_0_lim": -7.226200103759766,
+            "x_end_lim": -0.32053008675575256,
+            "x_0": -6.479822635650635,
+            "transition": 0.5,
             "tau_min": 0.25,
             "tau_max": 0.75,
-            "tol": 0.01,
-            "tau_0": 0.5,
-            "tau_min": 0,
-            "tau_max": 1,
+            "tol": 0.075,
+            "tau_0": 0.3,
+            "tau_min": -1.0,
+            "tau_max": 3.0,
+            "p_gain": 1.0,
+            "i_gain": 0.5,
+            "d_gain": 0.0,
+            "p_error": 0.0,
         }
+        # self.param = self.u.set_PID(self.param)
+        # self.param = self.u.set_pos(self.param)
+        # print(self.param)
+        self.u.save_param(self.param, "pid")
+        self.p_error = self.param["p_error"]
+
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
-        rospy.loginfo("computing trajectory")
-        self.x, self.y = self.compute_traj()
-        self.total_steps = len(self.y)
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
 
-        self.steps_left = 0
+        self.steps_left = 0param.keys()
 
-    def set_gains(self, p_gain, i_gain, d_gain):
-        self._p_gain = p_gain
-        self._i_gain = i_gain
-        self._d_gain = d_gain
+    def set_gains(self):
+        self._p_gain = self.param["p_gain"]
+        self._i_gain = self.param["i_gain"]
+        self._d_gain = self.param["d_gain"]
 
     # transition time is the time needed to go from low torque to high torque
     # tau_0 is low torque value and tau_end is high torque value
-    def compute_traj(self):
+    def compute_traj(self, p_meas):
         # way up :
         x1, y1 = self.u.quadratic_fct(
             self.param["t0"],
             self.param["t0"] + self.param["transition"],
-            self.param["v_0"],
-            self.param["v_end"],
+            p_meas,
+            self.param["x_end"],
             self.sampling_time,
         )
         x2, y2 = self.u.const(
-            self.param["v_end"],
+            self.param["x_end"],
             self.param["t0"] + self.param["transition"],
             self.param["t_end"] - self.param["transition"],
             self.sampling_time,
@@ -85,8 +89,8 @@ class pid:
         x3, y3 = self.u.quadratic_fct(
             self.param["t_end"] - self.param["transition"],
             self.param["t_end"],
-            self.param["v_end"],
-            self.param["v_0"],
+            self.param["x_end"],
+            self.param["x_0"],
             self.sampling_time,
         )
         # put everything together
@@ -131,7 +135,7 @@ class pid:
             t_next = self.u.get_lim_val(t_meas, self.param)
         if abs(t_meas - t_next) >= self.param["tol"]:
             cte = self.u.check_sign(t_meas, t_next)
-            rospy.loginfo("step to big, adapting")
+            # rospy.loginfo("step to big, adapting")
             t_next = t_meas + cte * self.param["tol"]
         return t_next
 
@@ -146,6 +150,10 @@ class pid:
         rospy.loginfo("Got triggered")
         if self.steps_left > 0:
             return
+        rospy.loginfo("computing trajectory")
+        _, _, p_meas = self.u.listener()
+        self.x, self.y = self.compute_traj(p_meas)
+        self.total_steps = len(self.y)
         self.steps_left = self.total_steps
 
     def stop(self):
@@ -153,13 +161,13 @@ class pid:
         # concatenating the data
         data_concat = np.array((self.y, self.t_meas_, self.v_meas_, self.p_meas_)).T
         data_pd = pd.DataFrame(
-            data=data_concat,
+            data=[data_concat],
             columns=("commanded torque", "torque", "velovity", "position"),
         )
 
         pid_concat = np.array((self.p_, self.i_, self.d_, self._p_error_)).T
         pid_pd = pd.DataFrame(
-            data=pid_concat,
+            data=[pid_concat],
             columns=("p gain", "i gain", "d gain", "position error"),
         )
 

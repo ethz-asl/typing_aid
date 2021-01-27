@@ -9,6 +9,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
+import csv
+
 import fsmstate as fsm
 import pid
 
@@ -100,13 +102,13 @@ class utils:
         msg.pid_gains_d = float(d)
         self.pub_target.publish(msg)
 
-    def set_PID(self):
-        p = input("p_gain")
-        i = input("i_gain")
-        d = input("d_gain")
+    def set_PID(self, param):
+        param["p_gain"] = input("p_gain")
+        param["i_gain"] = input("i_gain")
+        param["d_gain"] = input("d_gain")
         # initialization of p_error
-        p_error = input("p_error")
-        return p, i, d, p_error
+        param["p_error"] = input("p_error")
+        return param
 
     # def error(self, mode, position, velocity, torque):
     #     #computes the difference between the actual position/velocity/torque and the desired one
@@ -264,35 +266,45 @@ class utils:
 
     def check_sign(self, t_meas, t_next):
         if (t_meas - t_next) > 0:
-            return -1
-        else:
             return 1
+        else:
+            return -1
 
     def get_time(self):
         date = datetime.now()
-        name = date.strftime("%d/%m/%Y, %H:%M:%S")
+        name = date.strftime("%d-%m-%Y_%H-%M-%S")
         return name
 
     def concat_data(
         self, y, name_y, t_meas_, v_meas_, p_meas_, t_next_, add_data, name_file
     ):
         name = self.get_time()
-        if not y:
+        if len(y) == 0:
             data_concat = np.array((t_meas_, v_meas_, p_meas_)).T
             data_pd = pd.DataFrame(
-                data=data_concat,
+                data=[data_concat],
                 columns=("torque", "velovity", "position"),
             )
         else:
             data_concat = np.array((y, t_meas_, v_meas_, p_meas_)).T
             data_pd = pd.DataFrame(
-                data=data_concat,
+                data=[data_concat],
                 columns=(name_y, "torque", "velovity", "position"),
             )
-        if not t_next_:
+        if len(t_next_) == 0:
             data_pd.to_csv(name + name_file + ".csv")
         else:
             other_concat = np.array((t_next_)).T
-            other_pd = pd.DataFrame(data=other_concat, columns=(add_data))
+            other_pd = pd.DataFrame(data=[other_concat], columns=(add_data))
             all_in = pd.concat([data_pd, other_pd], axis=1)
-            all_in.to_csv(name + name_file + ".csv")
+            path = (
+                "/home/asl-admin/typing_ws/src/TypingAid/anydrive_typing_aid/scripts/"
+            )
+            all_in.to_csv(path + name + name_file + ".csv")
+
+    def save_param(self, param, controller):
+        name = self.get_time() + controller + "_param.csv"
+        with open(name, "w") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=list(param.keys()))
+            writer.writeheader()
+            writer.writerows(param)

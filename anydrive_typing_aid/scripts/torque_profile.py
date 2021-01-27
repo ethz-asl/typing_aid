@@ -90,7 +90,7 @@ class cte_mov:
             self.v_meas_,
             self.p_meas_,
             [],
-            "",
+            "_",
             "_cte_mov",
         )
         # # plotting the desired path

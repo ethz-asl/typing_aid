@@ -32,7 +32,7 @@ class impedance_vel:
             "x_end_lim": None,
             "x_0_lim": None,
             "v_0": 0,
-            "v_end": 1,
+            "v_end": 3,
             "tau_0": 0.5,
             "transition": 1.0,
             "K": 0.9,
@@ -45,10 +45,6 @@ class impedance_vel:
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
-        rospy.loginfo("computing trajectory")
-        self.x, self.y = self.compute_traj()
-        self.u.plot(self.x, self.y, "")
-        self.total_steps = len(self.y)
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
@@ -57,12 +53,12 @@ class impedance_vel:
 
     # transition time is the time needed to go from low torque to high torque
     # x_0 is low torque value and x_end is high torque value
-    def compute_traj(self):
+    def compute_traj(self, v_meas):
         # way up :
         x1, y1 = self.u.quadratic_fct(
             self.param["t0"],
             self.param["t0"] + self.param["transition"],
-            self.param["v_0"],
+            v_meas,
             self.param["v_end"],
             self.sampling_time,
         )
@@ -86,6 +82,10 @@ class impedance_vel:
         rospy.loginfo("Got triggered")
         if self.steps_left > 0:
             return
+        t_meas, v_meas, p_meas = self.u.listener()
+        self.x, self.y = self.compute_traj(v_meas)
+        self.u.plot(self.x, self.y, "")
+        self.total_steps = len(self.y)
         self.steps_left = self.total_steps
 
     def stop(self):
@@ -128,8 +128,8 @@ class impedance_vel:
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
-                if self.u.lim_check(self.param):
-                    raise rospy.ROSInterruptException
+                # if self.u.lim_check(self.param):
+                #     raise rospy.ROSInterruptException
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:
