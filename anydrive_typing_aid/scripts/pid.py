@@ -26,7 +26,13 @@ class pid:
         self._last_time, self._p_error_last = None, None
         self.u = utils.utils()
 
-        self.t_meas_, self.v_meas_, self.p_meas_, self._p_error_ = [], [], [], []
+        self.t_meas_, self.v_meas_, self.p_meas_, self._p_error_, self.t_cmd_ = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
         self.p_, self.i_, self.d_ = [], [], []
         self.p_des, self.v_des = 0, 0
 
@@ -129,18 +135,18 @@ class pid:
         self.cmd = p + i + d
         return self.cmd
 
-    # t_meas is the measured curent torque, t_next is the desired torque sent to the drive, tol is the maximum delta we allow
+    # t_meas is the measured curent torque, t_cmd is the desired torque sent to the drive, tol is the maximum delta we allow
     # defined in self.param
-    def filt(self, t_meas, t_next):
+    def filt(self, t_meas, t_cmd):
         # if true, values are out of bounds
         if self.u.lim_check(self.param):
             rospy.loginfo("value out of bounds")
-            t_next = self.u.get_lim_val(t_meas, self.param)
-        if abs(t_meas - t_next) >= self.param["tol"]:
-            cte = self.u.check_sign(t_meas, t_next)
+            t_cmd = self.u.get_lim_val(t_meas, self.param)
+        if abs(t_meas - t_cmd) >= self.param["tol"]:
+            cte = self.u.check_sign(t_meas, t_cmd)
             # rospy.loginfo("step to big, adapting")
-            t_next = t_meas + cte * self.param["tol"]
-        return t_next
+            t_cmd = t_meas + cte * self.param["tol"]
+        return t_cmd
 
     def antiWindup(self, i, wind_val):
         if i >= wind_val:
@@ -162,26 +168,30 @@ class pid:
     def stop(self):
         rospy.loginfo("Exit handler")
         # concatenating the data
+        self.y = self.y.tolist()
         data_concat = np.array((self.y, self.t_meas_, self.v_meas_, self.p_meas_)).T
         data_pd = pd.DataFrame(
-            data=[data_concat],
+            data=data_concat,
             columns=("commanded torque", "torque", "velovity", "position"),
         )
 
         pid_concat = np.array((self.p_, self.i_, self.d_, self._p_error_)).T
         pid_pd = pd.DataFrame(
-            data=[pid_concat],
+            data=pid_concat,
             columns=("p gain", "i gain", "d gain", "position error"),
         )
+        other_concat = np.array((self.t_cmd_)).T
+        other_pd = pd.DataFrame(data=other_concat, columns=(add_data))
 
-        all_in = pd.concat([data_pd, pid_pd], axis=1)
+        all_in = pd.concat([data_pd, pid_pd, other_pd], axis=1)
         name = self.u.get_time()
-        all_in.to_csv(name + "_pid.csv")
+        path = "/home/asl-admin/Desktop/pid"
+        all_in.to_csv(path + name + "_pid.csv")
         # x = np.arange(0, len(self.t_meas_), 1)
         # self.u.plot(x, self.y , "desired_traj.png")
         # self.u.plot(x, self.t_meas_ , "torque.png")
         # self.u.plot(x, self.p_error_ , "position_error.png")
-        self.u.stop()
+        self.u.stop_drive()
 
     def run(self):
         rospy.loginfo("starting movement")
@@ -191,14 +201,13 @@ class pid:
                     # Moving up
                     t_meas, v_meas, p_meas = self.u.listener()
                     self.p_error = p_meas - self.y[self.total_steps - self.steps_left]
-                    t_next = self.update(self.p_error)
-                    t_next = self.filt(t_meas, t_next)
-                    self.u.move(JOINT_TORQUE, self.p_des, self.v_des, t_next)
+                    t_cmd = self.update(self.p_error)
+                    t_cmd = self.filt(t_meas, t_cmd)
                     self.steps_left -= 1
                 else:
-                    self.u.move(
-                        JOINT_TORQUE, self.p_des, self.v_des, self.param["tau_0"]
-                    )
+                    t_cmd = self.param["tau_0"]
+                self.u.move(JOINT_TORQUE, self.p_des, self.v_des, t_cmd)
+                self.t_cmd_ = self.u.store_one(t_cmd, self.t_cmd_)
                 t_meas, v_meas, p_meas = self.u.listener()
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
@@ -209,4 +218,4 @@ class pid:
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:
-            self.u.stop()
+            self.u.stop_drive()

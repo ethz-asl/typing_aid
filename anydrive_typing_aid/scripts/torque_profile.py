@@ -20,7 +20,7 @@ JOINT_TORQUE = 10
 
 class cte_mov:
     def __init__(self):
-        self.p_des, self.v_des, self.t_des = 0, 0, 0
+        self.p_des, self.v_des = 0, 0
         self.u = utils.utils()
         self.t_meas_, self.v_meas_, self.p_meas_ = [], [], []
 
@@ -113,7 +113,7 @@ class cte_mov:
         rospy.loginfo("Exit handler")
         # collecting the data
         self.u.concat_data(
-            self.y.tolist(),
+            self.y,
             "commanded torque",
             self.t_meas_,
             self.v_meas_,
@@ -121,13 +121,14 @@ class cte_mov:
             [],
             "_",
             "_cte_mov",
+            "torque_profile/",
         )
         # # plotting the desired path
         # x = np.arange(0, len(self.t_meas_), 1)
         # self.u.plot(x, self.y , "desired_traj.png")
         # self.u.plot(x, self.t_meas_ , "torque.png")
 
-        self.u.stop()
+        self.u.stop_drive()
 
     def run(self):
         rospy.loginfo("starting movement")
@@ -149,4 +150,4 @@ class cte_mov:
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:
-            self.u.stop()
+            self.u.stop_drive()

@@ -19,9 +19,9 @@ JOINT_TORQUE = 10
 
 class impedance:
     def __init__(self):
-        self.p_des, self.v_des, self.t_des, self.t_next = 0, 0, 0, 0
+        self.p_des, self.v_des = 0, 0
         self.u = utils.utils()
-        self.t_meas_, self.v_meas_, self.p_meas_, self.t_next_ = [], [], [], []
+        self.t_meas_, self.v_meas_, self.p_meas_, self.t_cmd_ = [], [], [], []
 
         self.param = {
             "t0": 0.0,
@@ -92,19 +92,20 @@ class impedance:
         # collecting the data
         self.u.concat_data(
             self.y,
-            "commanded torque",
+            "desired position",
             self.t_meas_,
             self.v_meas_,
             self.p_meas_,
-            self.t_next_,
-            "desired torque",
+            self.t_cmd_,
+            "commanded torque",
             "_imped",
+            "imped_pos/",
         )
         # # plotting the desired path
         # x = np.arange(0, len(self.t_meas_), 1)
         # self.u.plot(x, self.y , "desired_traj.png")
         # self.u.plot(x, self.t_meas_ , "torque.png")
-        self.u.stop()
+        self.u.stop_drive()
 
     def run(self):
         rospy.loginfo("starting movement")
@@ -113,18 +114,16 @@ class impedance:
                 if self.steps_left > 0:
                     # Moving up
                     t_meas, v_meas, p_meas = self.u.listener()
-                    self.t_next = self.param["K"] * (
+                    t_cmd = self.param["K"] * (
                         self.y[self.total_steps - self.steps_left] - p_meas
                     )
-                    if self.t_next < self.param["tau_0"]:
-                        self.t_next = self.param["tau_0"]
-                    self.t_next_ = self.u.store_one(self.t_next, self.t_next_)
-                    self.u.move(JOINT_TORQUE, self.p_des, self.v_des, self.t_next)
+                    if t_cmd < self.param["tau_0"]:
+                        t_cmd = self.param["tau_0"]
                     self.steps_left -= 1
                 else:
-                    self.u.move(
-                        JOINT_TORQUE, self.p_des, self.v_des, self.param["tau_0"]
-                    )
+                    t_cmd = self.param["tau_0"]
+                self.u.move(JOINT_TORQUE, self.p_des, self.v_des, t_cmd)
+                self.t_cmd_ = self.u.store_one(t_cmd, self.t_cmd_)
                 t_meas, v_meas, p_meas = self.u.listener()
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
@@ -134,4 +133,4 @@ class impedance:
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:
-            self.u.stop()
+            self.u.stop_drive()

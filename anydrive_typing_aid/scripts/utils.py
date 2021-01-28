@@ -177,7 +177,7 @@ class utils:
     #     self.pub_target.publish(msg)
     #     rospy.sleep(time)#in seconds
 
-    def stop(self):
+    def stop_drive(self):
         rospy.loginfo("Stopping drive")
         msg = msg_defs.Command()
         # freezing the drive
@@ -281,7 +281,7 @@ class utils:
         return name
 
     def concat_data(
-        self, y, name_y, t_meas_, v_meas_, p_meas_, t_next_, add_data, name_file
+        self, y, name_y, t_meas_, v_meas_, p_meas_, t_next_, add_data, name_file, folder
     ):
         name = self.get_time()
         if len(y) == 0:
@@ -292,20 +292,22 @@ class utils:
                 columns=("torque", "velovity", "position"),
             )
         else:
+            # y is a numpy array and everything else is a list
+            y = y.tolist()
             data_concat = np.array((y, t_meas_, v_meas_, p_meas_)).T
             print("Shape2: {}".format(data_concat.shape))
             data_pd = pd.DataFrame(
-                data=[data_concat],
+                data=data_concat,
                 columns=(name_y, "torque", "velovity", "position"),
             )
         if len(t_next_) == 0:
             data_pd.to_csv(name + name_file + ".csv")
         else:
             other_concat = np.array((t_next_)).T
-            other_pd = pd.DataFrame(data=[other_concat], columns=(add_data))
-            all_in = pd.concat([data_pd, other_pd], axis=1)
+            other_pd = pd.DataFrame(data=other_concat, columns=(add_data))
+            all_in = pd.concat([data_pd, other_pd]), axis=1)
             path = (
-                "/home/asl-admin/typing_ws/src/TypingAid/anydrive_typing_aid/scripts/"
+                "/home/asl-admin/Desktop/"+folder
             )
             all_in.to_csv(path + name + name_file + ".csv")
 

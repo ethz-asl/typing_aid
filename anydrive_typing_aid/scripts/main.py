@@ -44,4 +44,4 @@ if __name__ == "__main__":
         ctrl.run()
 
     except rospy.ROSInterruptException:
-        utils.utils().stop()
+        utils.utils().stop_drive()
