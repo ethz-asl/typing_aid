@@ -19,9 +19,8 @@ JOINT_TORQUE = 10
 JOINT_POSITION_VELOCITY = 11
 
 
-class pos_mov(BaseController):
+class pos_mov:
     def __init__(self):
-        super(pos_mov, self).__init__()
 
         self.p_des, self.v_des, self.t_des, self.v_last = 0, 0, 0, 0
         self.t_meas_, self.v_meas_, self.p_meas_, self.dy = [], [], [], []
