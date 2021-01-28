@@ -34,12 +34,12 @@ class Friction:
             "tau_min": 0.0,
             "tau_max": 1.0,
         }
+        self.u.save_param(self.param, "friction")
 
         self.d_tau_up = self.param["d_tau_up_per_sec"] / self.param["rate"]
         self.d_tau_down = self.param["d_tau_down_per_sec"] / self.param["rate"]
 
         self.move_up = False
-        self.go_down = False
         self.current_torque = self.param["tau_0"]
 
         self.sampling_time = 1.0 / self.param["rate"]
@@ -105,13 +105,9 @@ class Friction:
                         print("Finished moving up")
                 else:
                     self.current_torque -= self.d_tau_down
-                    if self.current_torque > self.param["tau_down"]:
-                        self.current_torque -= self.d_tau_down
-                        self.go_down = True
-                    else:
-                        self.go_down = False
-                        if self.current_torque < self.param["tau_0"]:
-                            self.current_torque = self.param["tau_0"]
+                    if self.current_torque < self.param["tau_0"]:
+                        self.current_torque = self.param["tau_0"]
+
                 print("Current torque: {}".format(self.current_torque))
                 self.u.move(JOINT_TORQUE, self.p_des, self.v_des, self.current_torque)
                 self.rate.sleep()

@@ -33,7 +33,7 @@ class impedance_vel:
             "x_0_lim": None,
             "v_0": 0,
             "v_end": 3,
-            "tau_0": 0.5,
+            "tau_0": 0.3,
             "transition": 1.0,
             "K": 0.9,
             "tau_min": 0,
@@ -41,6 +41,7 @@ class impedance_vel:
         }
 
         # self.param = self.u.set_pos(self.param)
+        self.u.save_param(self.param, "imped_vel")
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]

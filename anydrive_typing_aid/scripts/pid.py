@@ -21,10 +21,11 @@ JOINT_TORQUE = 10
 
 class pid:
     def __init__(self):
-        self._p_error, self._i_error, self._d_error = 0, 0, 0
+        self._i_error, self._d_error = 0, 0
         self._p_gain, self._i_gain, self._d_gain = None, None, None
         self._last_time, self._p_error_last = None, None
         self.u = utils.utils()
+
         self.t_meas_, self.v_meas_, self.p_meas_, self._p_error_ = [], [], [], []
         self.p_, self.i_, self.d_ = [], [], []
         self.p_des, self.v_des = 0, 0
@@ -33,10 +34,10 @@ class pid:
             "t0": 0.0,
             "t_end": 1.0,
             "rate": 25,  # in hz
-            "x_end": -1.5459411144256592,
-            "x_0_lim": -7.226200103759766,
-            "x_end_lim": -0.32053008675575256,
-            "x_0": -6.479822635650635,
+            "x_end": 0.14819693565368652,
+            "x_0_lim": -3.5230984687805176,
+            "x_end_lim": 3.2660608291625977,
+            "x_0": -2.897282361984253,
             "transition": 0.5,
             "tau_min": 0.25,
             "tau_max": 0.75,
@@ -44,16 +45,18 @@ class pid:
             "tau_0": 0.3,
             "tau_min": -1.0,
             "tau_max": 3.0,
-            "p_gain": 1.0,
+            "p_gain": 1.5,
             "i_gain": 0.5,
-            "d_gain": 0.0,
-            "p_error": 0.0,
+            "d_gain": 0.2,
         }
+
         # self.param = self.u.set_PID(self.param)
         # self.param = self.u.set_pos(self.param)
         # print(self.param)
         self.u.save_param(self.param, "pid")
-        self.p_error = self.param["p_error"]
+        _, _, p_meas = self.u.listener()
+        self.p_error = p_meas - self.param["x_end"]
+        self.set_gains()
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
@@ -62,7 +65,7 @@ class pid:
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
 
-        self.steps_left = 0param.keys()
+        self.steps_left = 0
 
     def set_gains(self):
         self._p_gain = self.param["p_gain"]

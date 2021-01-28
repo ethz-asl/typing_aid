@@ -248,6 +248,11 @@ class utils:
         y = np.concatenate((y1, y2, y3))
         return x, y
 
+    def add_profile(self, x4, y4, x5, y5):
+        x = np.concatenate((x4, x5))
+        y = np.concatenate((y4, y5))
+        return x, y
+
     def store(self, t_meas, v_meas, p_meas, t_meas_, v_meas_, p_meas_):
         t_meas_.append(t_meas)
         v_meas_.append(v_meas)
@@ -281,12 +286,14 @@ class utils:
         name = self.get_time()
         if len(y) == 0:
             data_concat = np.array((t_meas_, v_meas_, p_meas_)).T
+            print("Shape1: {}".format(data_concat.shape))
             data_pd = pd.DataFrame(
-                data=[data_concat],
+                data=data_concat,
                 columns=("torque", "velovity", "position"),
             )
         else:
             data_concat = np.array((y, t_meas_, v_meas_, p_meas_)).T
+            print("Shape2: {}".format(data_concat.shape))
             data_pd = pd.DataFrame(
                 data=[data_concat],
                 columns=(name_y, "torque", "velovity", "position"),
@@ -307,4 +314,4 @@ class utils:
         with open(name, "w") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=list(param.keys()))
             writer.writeheader()
-            writer.writerows(param)
+            writer.writerows([param])

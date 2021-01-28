@@ -44,6 +44,7 @@ class pos_mov(BaseController):
         }
         # self.param = self.u.set_pos(self.param)
         # print(self.param)
+        self.u.save_param(self.param, "pos_control")
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")

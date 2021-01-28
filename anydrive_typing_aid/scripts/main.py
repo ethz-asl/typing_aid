@@ -7,10 +7,10 @@ import rospy
 
 import fsmstate as fsm
 import utils
-import cte_mov as c
+import torque_profile as c
 import pid as p
 import pos_control as pos
-import imped as i_pos
+import imped_pos as i_pos
 import imped_vel as i_vel
 from friction import Friction
 

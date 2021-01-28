@@ -27,11 +27,11 @@ class impedance:
             "t0": 0.0,
             "t_end": 2.0,
             "rate": 25,  # in hz
-            "x_end": 2.649951934814453,
-            "x_0_lim": -2.3559787273406982,
-            "x_end_lim": 5.186628818511963,
-            "x_0": 0.40113598108291626,
-            "tau_0": 0.5,
+            "x_end": 0.14819693565368652,
+            "x_0_lim": -3.5230984687805176,
+            "x_end_lim": 3.2660608291625977,
+            "x_0": -2.897282361984253,
+            "tau_0": 0.3,
             "transition": 1,
             "K": 0.7,
             "tau_min": 0,
@@ -39,6 +39,7 @@ class impedance:
         }
 
         # self.param = self.u.set_pos(self.param)
+        self.u.save_param(self.param, "imped_pos")
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
