@@ -281,39 +281,23 @@ class utils:
         return name
 
     def concat_data(
-        self, y, name_y, t_meas_, v_meas_, p_meas_, t_next_, add_data, name_file, folder
+        self, t_cmd, name_t_cmd, t_meas_, v_meas_, p_meas_, name_file, folder
     ):
+        print("length1: {}".format(len(t_cmd)))
+        print("length2: {}".format(len(t_meas_)))
         name = self.get_time()
-        if len(y) == 0:
-            data_concat = np.array((t_meas_, v_meas_, p_meas_)).T
-            print("Shape1: {}".format(data_concat.shape))
-            data_pd = pd.DataFrame(
-                data=data_concat,
-                columns=("torque", "velovity", "position"),
-            )
-        else:
-            # y is a numpy array and everything else is a list
-            y = y.tolist()
-            data_concat = np.array((y, t_meas_, v_meas_, p_meas_)).T
-            print("Shape2: {}".format(data_concat.shape))
-            data_pd = pd.DataFrame(
-                data=data_concat,
-                columns=(name_y, "torque", "velovity", "position"),
-            )
-        if len(t_next_) == 0:
-            data_pd.to_csv(name + name_file + ".csv")
-        else:
-            other_concat = np.array((t_next_)).T
-            other_pd = pd.DataFrame(data=other_concat, columns=(add_data))
-            all_in = pd.concat([data_pd, other_pd]), axis=1)
-            path = (
-                "/home/asl-admin/Desktop/"+folder
-            )
-            all_in.to_csv(path + name + name_file + ".csv")
+        path = "/home/asl-admin/Desktop/" + folder
+        data_concat = np.array((t_cmd[: len(t_meas_)], t_meas_, v_meas_, p_meas_)).T
+        print("Shape1: {}".format(data_concat.shape))
+        data_pd = pd.DataFrame(
+            data=data_concat,
+            columns=[name_t_cmd, "torque", "velovity", "position"],
+        )
+        data_pd.to_csv(path + name + name_file + ".csv")
 
-    def save_param(self, param, controller):
+    def save_param(self, param, controller, folder):
         name = self.get_time() + controller + "_param.csv"
-        with open(name, "w") as csvfile:
+        with open("/home/asl-admin/Desktop/" + folder + name, "w") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=list(param.keys()))
             writer.writeheader()
             writer.writerows([param])
