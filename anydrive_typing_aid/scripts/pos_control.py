@@ -10,7 +10,6 @@ import numpy as np
 
 import fsmstate as fsm
 import utils
-from ctrl_common import BaseController
 
 global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE, JOINT_POSITION_VELOCITY
 JOINT_POSITION = 8

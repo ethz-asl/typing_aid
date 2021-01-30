@@ -44,45 +44,21 @@ class impedance:
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
+        self.other_traj = False
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
 
         self.steps_left = 0
 
-    # transition time is the time needed to go from low torque to high torque
-    # x_0 is low torque value and x_end is high torque value
-    def compute_traj(self, p_meas):
-        # way up :
-        x1, y1 = self.u.quadratic_fct(
-            self.param["t0"],
-            self.param["t0"] + self.param["transition"],
-            p_meas,
-            self.param["x_end"],
-            self.sampling_time,
-        )
-        x2, y2 = self.u.const(
-            self.param["x_end"],
-            self.param["t0"] + self.param["transition"],
-            self.param["t_end"] - self.param["transition"],
-            self.sampling_time,
-        )
-        x3, y3 = self.u.quadratic_fct(
-            self.param["t_end"] - self.param["transition"],
-            self.param["t_end"],
-            self.param["x_end"],
-            self.param["x_0"],
-            self.sampling_time,
-        )
-        # put everything together
-        return self.u.torque_profile(y1, y2, y3, x1, x2, x3)
-
     def callback(self, msg):
         if self.steps_left > 0:
             return
         rospy.loginfo("Got triggered")
         _, _, p_meas = self.u.listener()
-        self.x, self.y = self.compute_traj(p_meas)
+        self.x, self.y = self.u.compute_traj(
+            self.param, "x_0", p_meas, "x_end", _, self.other_traj, self.sampling_time
+        )
         self.u.plot(self.x, self.y, "desired_traj.png")
         self.total_steps = len(self.y)
         self.steps_left = self.total_steps

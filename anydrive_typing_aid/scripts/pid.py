@@ -78,33 +78,6 @@ class pid:
         self._i_gain = self.param["i_gain"]
         self._d_gain = self.param["d_gain"]
 
-    # transition time is the time needed to go from low torque to high torque
-    # tau_0 is low torque value and tau_end is high torque value
-    def compute_traj(self, p_meas):
-        # way up :
-        x1, y1 = self.u.quadratic_fct(
-            self.param["t0"],
-            self.param["t0"] + self.param["transition"],
-            p_meas,
-            self.param["x_end"],
-            self.sampling_time,
-        )
-        x2, y2 = self.u.const(
-            self.param["x_end"],
-            self.param["t0"] + self.param["transition"],
-            self.param["t_end"] - self.param["transition"],
-            self.sampling_time,
-        )
-        x3, y3 = self.u.quadratic_fct(
-            self.param["t_end"] - self.param["transition"],
-            self.param["t_end"],
-            self.param["x_end"],
-            self.param["x_0"],
-            self.sampling_time,
-        )
-        # put everything together
-        return self.u.torque_profile(y1, y2, y3, x1, x2, x3)
-
     def update(self, p_error, wind_val=0):
         t = time.time()
         if self._last_time is None:
@@ -161,7 +134,9 @@ class pid:
             return
         rospy.loginfo("computing trajectory")
         _, _, p_meas = self.u.listener()
-        self.x, self.y = self.compute_traj(p_meas)
+        self.x, self.y = self.u.compute_traj(
+            self.param, "x_0", p_meas, "x_end", _, self.other_traj, self.sampling_time
+        )
         self.total_steps = len(self.y)
         self.steps_left = self.total_steps
 
@@ -181,7 +156,7 @@ class pid:
             columns=("p gain", "i gain", "d gain", "position error"),
         )
         other_concat = np.array((self.t_cmd_)).T
-        other_pd = pd.DataFrame(data=other_concat, columns=(add_data))
+        other_pd = pd.DataFrame(data=other_concat, columns=("commanded torque"))
 
         all_in = pd.concat([data_pd, pid_pd, other_pd], axis=1)
         name = self.u.get_time()

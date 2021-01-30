@@ -317,3 +317,60 @@ class utils:
             writer = csv.DictWriter(csvfile, fieldnames=list(param.keys()))
             writer.writeheader()
             writer.writerows([param])
+
+    def compute_traj(self, param, param_0, other_start_val, param_end, param_low, other_traj, sampling_time):
+        if other_start_val == -99:
+            x1, y1 = self.quadratic_fct(
+                param["t0"],
+                param["t0"] + param["transition"],
+                param[param_0],
+                param[param_end],
+                sampling_time,
+            )
+        else:
+            x1, y1 = self.quadratic_fct(
+                param["t0"],
+                param["t0"] + param["transition"],
+                other_start_val,
+                param[param_end],
+                sampling_time,
+            )
+        x2, y2 = self.const(
+            param[param_end],
+            param["t0"] + param["transition"],
+            param["t_end"] - param["transition"],
+            sampling_time,
+        )
+        if not other_traj:
+            x3, y3 = self.quadratic_fct(
+                param["t_end"] - param["transition"],
+                param["t_end"],
+                param[param_end],
+                param[param_0],
+                sampling_time,
+            )
+            # put everything together
+            x, y = self.torque_profile(y1, y2, y3, x1, x2, x3)
+        else:
+            half_time = (
+                param["transition"] / 2.0
+                + param["t_end"]
+                - param["transition"]
+            )
+            x3, y3 = self.quadratic_fct(
+                param["t_end"] - param["transition"],
+                half_time,
+                param[param_end],
+                param[param_low],
+                sampling_time,
+            )
+            x4, y4 = self.quadratic_fct(
+                half_time,
+                param["t_end"],
+                param[param_low],
+                param[param_0],
+                sampling_time,
+            )
+            x5, y5 = self.torque_profile(y1, y2, y3, x1, x2, x3)
+            x, y = self.add_profile(x5, y5, x4, y4)
+        return x, y

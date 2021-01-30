@@ -27,7 +27,7 @@ class cte_mov:
         self.param = {
             "t0": 0.0,
             "t_end": 1.0,
-            "rate": 60,  # in hz
+            "rate": 80,  # in hz
             "tau_0": 0.3,
             "tau_low": 0.0,
             "tau_end": 0.9,
@@ -43,7 +43,15 @@ class cte_mov:
         self.rate = rospy.Rate(rate_hz)
         rospy.loginfo("computing trajectory")
         self.other_traj = True
-        self.x, self.y = self.compute_traj()
+        self.x, self.y = self.u.compute_traj(
+            self.param,
+            "tau_0",
+            -99,
+            "tau_end",
+            "tau_low",
+            self.other_traj,
+            self.sampling_time,
+        )
         self.u.plot(self.x, self.y, "desired_traj.png")
         self.total_steps = len(self.y)
 
@@ -52,56 +60,6 @@ class cte_mov:
 
         self.steps_left = 0
         # choose the torque profile
-
-    # transition time is the time needed to go from low torque to high torque
-    # tau_0 is low torque value and tau_end is high torque value
-    def compute_traj(self):
-        x1, y1 = self.u.quadratic_fct(
-            self.param["t0"],
-            self.param["t0"] + self.param["transition"],
-            self.param["tau_0"],
-            self.param["tau_end"],
-            self.sampling_time,
-        )
-        x2, y2 = self.u.const(
-            self.param["tau_end"],
-            self.param["t0"] + self.param["transition"],
-            self.param["t_end"] - self.param["transition"],
-            self.sampling_time,
-        )
-        if not self.other_traj:
-            x3, y3 = self.u.quadratic_fct(
-                self.param["t_end"] - self.param["transition"],
-                self.param["t_end"],
-                self.param["tau_end"],
-                self.param["tau_0"],
-                self.sampling_time,
-            )
-            # put everything together
-            x, y = self.u.torque_profile(y1, y2, y3, x1, x2, x3)
-        else:
-            half_time = (
-                self.param["transition"] / 2.0
-                + self.param["t_end"]
-                - self.param["transition"]
-            )
-            x3, y3 = self.u.quadratic_fct(
-                self.param["t_end"] - self.param["transition"],
-                half_time,
-                self.param["tau_end"],
-                self.param["tau_low"],
-                self.sampling_time,
-            )
-            x4, y4 = self.u.quadratic_fct(
-                half_time,
-                self.param["t_end"],
-                self.param["tau_low"],
-                self.param["tau_0"],
-                self.sampling_time,
-            )
-            x5, y5 = self.u.torque_profile(y1, y2, y3, x1, x2, x3)
-            x, y = self.u.add_profile(x5, y5, x4, y4)
-        return x, y
 
     def callback(self, msg):
         rospy.loginfo("Got triggered")
