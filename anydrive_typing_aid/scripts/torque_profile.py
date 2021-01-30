@@ -22,7 +22,7 @@ class cte_mov:
     def __init__(self):
         self.p_des, self.v_des = 0, 0
         self.u = utils.utils()
-        self.t_meas_, self.v_meas_, self.p_meas_ = [], [], []
+        self.t_meas_, self.v_meas_, self.p_meas_, self.t_cmd_ = [], [], [], []
 
         self.param = {
             "t0": 0.0,
@@ -35,8 +35,6 @@ class cte_mov:
             "tau_min": -0.5,
             "tau_max": 2.0,
         }
-
-        self.u.save_param(self.param, "torque_profile")
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
@@ -69,15 +67,14 @@ class cte_mov:
 
     def stop(self):
         rospy.loginfo("Exit handler")
+        self.u.save_param(self.param, "torque_profile", "torque_profile/")
         # collecting the data
         self.u.concat_data(
-            self.y,
+            self.t_cmd_,
             "commanded torque",
             self.t_meas_,
             self.v_meas_,
             self.p_meas_,
-            [],
-            "_",
             "_cte_mov",
             "torque_profile/",
         )
@@ -99,6 +96,7 @@ class cte_mov:
                 else:
                     t_cmd = self.param["tau_0"]
                 self.u.move(JOINT_TORQUE, self.p_des, self.v_des, t_cmd)
+                self.t_cmd_ = self.u.store_one(t_cmd, self.t_cmd_)
                 t_meas, v_meas, p_meas = self.u.listener()
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_

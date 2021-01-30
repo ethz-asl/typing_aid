@@ -40,10 +40,10 @@ class pid:
             "t0": 0.0,
             "t_end": 1.0,
             "rate": 25,  # in hz
-            "x_end": 0.14819693565368652,
-            "x_0_lim": -3.5230984687805176,
-            "x_end_lim": 3.2660608291625977,
-            "x_0": -2.897282361984253,
+            "x_end": 9.015493392944336,
+            "x_0_lim": 2.0243513584136963,
+            "x_end_lim": 12.032234191894531,
+            "x_0": 4.290712356567383,
             "transition": 0.5,
             "tau_min": 0.25,
             "tau_max": 0.75,
@@ -55,11 +55,9 @@ class pid:
             "i_gain": 0.5,
             "d_gain": 0.2,
         }
-
         # self.param = self.u.set_PID(self.param)
         # self.param = self.u.set_pos(self.param)
         # print(self.param)
-        self.u.save_param(self.param, "pid")
         _, _, p_meas = self.u.listener()
         self.p_error = p_meas - self.param["x_end"]
         self.set_gains()
@@ -142,23 +140,34 @@ class pid:
 
     def stop(self):
         rospy.loginfo("Exit handler")
+        self.u.save_param(self.param, "pid", "pid/")
         # concatenating the data
-        self.y = self.y.tolist()
-        data_concat = np.array((self.y, self.t_meas_, self.v_meas_, self.p_meas_)).T
+        print("length1: {}".format(len(self.t_cmd_)))
+        print("length2: {}".format(len(self.t_meas_)))
+        data_concat = np.array(
+            (
+                self.t_cmd_[: len(self.t_meas_)],
+                self.t_meas_,
+                self.v_meas_,
+                self.p_meas_,
+            )
+        ).T
         data_pd = pd.DataFrame(
             data=data_concat,
-            columns=("commanded torque", "torque", "velovity", "position"),
+            columns=["commanded torque", "torque", "velovity", "position"],
         )
+        print("length1: {}".format(len(self.p_)))
+        print("length2: {}".format(len(self._p_error_)))
 
-        pid_concat = np.array((self.p_, self.i_, self.d_, self._p_error_)).T
+        pid_concat = np.array(
+            (self.p_, self.i_, self.d_, self._p_error_[: len(self.d_)])
+        ).T
         pid_pd = pd.DataFrame(
             data=pid_concat,
-            columns=("p gain", "i gain", "d gain", "position error"),
+            columns=["p gain", "i gain", "d gain", "position error"],
         )
-        other_concat = np.array((self.t_cmd_)).T
-        other_pd = pd.DataFrame(data=other_concat, columns=("commanded torque"))
 
-        all_in = pd.concat([data_pd, pid_pd, other_pd], axis=1)
+        all_in = pd.concat([data_pd, pid_pd], axis=1)
         name = self.u.get_time()
         path = "/home/asl-admin/Desktop/pid"
         all_in.to_csv(path + name + "_pid.csv")
@@ -176,6 +185,7 @@ class pid:
                     # Moving up
                     t_meas, v_meas, p_meas = self.u.listener()
                     self.p_error = p_meas - self.y[self.total_steps - self.steps_left]
+                    self._p_error_ = self.u.store_one(self.p_error, self._p_error_)
                     t_cmd = self.update(self.p_error)
                     t_cmd = self.filt(t_meas, t_cmd)
                     self.steps_left -= 1
@@ -187,7 +197,6 @@ class pid:
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
-                self._p_error_ = self.u.store_one(self.p_error, self._p_error_)
                 if self.u.lim_check(self.param):
                     raise rospy.ROSInterruptException
                 self.rate.sleep()

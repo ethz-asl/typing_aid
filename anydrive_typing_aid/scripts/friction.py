@@ -34,7 +34,6 @@ class Friction:
             "tau_min": 0.0,
             "tau_max": 1.0,
         }
-        self.u.save_param(self.param, "friction")
 
         self.d_tau_up = self.param["d_tau_up_per_sec"] / self.param["rate"]
         self.d_tau_down = self.param["d_tau_down_per_sec"] / self.param["rate"]
@@ -71,15 +70,14 @@ class Friction:
 
     def stop(self):
         rospy.loginfo("Exit handler")
+        self.u.save_param(self.param, "friction", "friction/")
         # collecting the data
         self.u.concat_data(
-            [],
-            "",
+            self.t_cmd_,
+            "commanded torque",
             self.t_meas_,
             self.v_meas_,
             self.p_meas_,
-            self.t_cmd_,
-            "commanded torque",
             "_friction",
             "friction/",
         )

@@ -27,10 +27,10 @@ class impedance:
             "t0": 0.0,
             "t_end": 2.0,
             "rate": 25,  # in hz
-            "x_end": 0.14819693565368652,
-            "x_0_lim": -3.5230984687805176,
-            "x_end_lim": 3.2660608291625977,
-            "x_0": -2.897282361984253,
+            "x_end": 9.015493392944336,
+            "x_0_lim": 2.0243513584136963,
+            "x_end_lim": 12.032234191894531,
+            "x_0": 4.290712356567383,
             "tau_0": 0.3,
             "transition": 1,
             "K": 0.7,
@@ -39,7 +39,6 @@ class impedance:
         }
 
         # self.param = self.u.set_pos(self.param)
-        self.u.save_param(self.param, "imped_pos")
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
@@ -65,15 +64,14 @@ class impedance:
 
     def stop(self):
         rospy.loginfo("Exit handler")
+        self.u.save_param(self.param, "imped_pos", "imped_pos/")
         # collecting the data
         self.u.concat_data(
-            self.y,
-            "desired position",
+            self.t_cmd_,
+            "commanded torque",
             self.t_meas_,
             self.v_meas_,
             self.p_meas_,
-            self.t_cmd_,
-            "commanded torque",
             "_imped",
             "imped_pos/",
         )
