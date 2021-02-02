@@ -17,7 +17,7 @@ JOINT_VELOCITY = 9
 JOINT_TORQUE = 10
 
 
-class impedance:
+class Impedance_pos:
     def __init__(self):
         self.p_des, self.v_des = 0, 0
         self.u = utils.utils()

@@ -70,6 +70,7 @@ class pid:
         rospy.loginfo("Controller init finished")
 
         self.steps_left = 0
+        self.other_traj = False
 
     def set_gains(self):
         self._p_gain = self.param["p_gain"]
@@ -169,7 +170,7 @@ class pid:
 
         all_in = pd.concat([data_pd, pid_pd], axis=1)
         name = self.u.get_time()
-        path = "/home/asl-admin/Desktop/pid"
+        path = "/home/asl-admin/Desktop/pid/"
         all_in.to_csv(path + name + "_pid.csv")
         # x = np.arange(0, len(self.t_meas_), 1)
         # self.u.plot(x, self.y , "desired_traj.png")
