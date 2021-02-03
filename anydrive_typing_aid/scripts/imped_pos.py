@@ -25,25 +25,26 @@ class Impedance_pos:
 
         self.param = {
             "t0": 0.0,
-            "t_end": 2.0,
+            "t_end": 1.0,
             "rate": 25,  # in hz
-            "x_end": 9.015493392944336,
-            "x_0_lim": 2.0243513584136963,
-            "x_end_lim": 12.032234191894531,
-            "x_0": 4.290712356567383,
-            "tau_0": 0.3,
-            "transition": 1,
+            "x_end": 1.5704847574234009,
+            "x_0_lim": -4.600384712219238,
+            "x_end_lim": 6.563328742980957,
+            "x_0": -2.823723077774048,
+            "tau_0": 0.5,
+            "transition": 0.5,
             "K": 0.7,
-            "tau_min": 0,
-            "tau_max": 3,
+            "tau_min": -1.0,
+            "tau_max": 3.0,
         }
 
         # self.param = self.u.set_pos(self.param)
+        # print(self.param)
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
-        self.other_traj = False
+        self.other_traj = True
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
@@ -51,14 +52,20 @@ class Impedance_pos:
         self.steps_left = 0
 
     def callback(self, msg):
-        if self.steps_left > 0:
-            return
+        # if self.steps_left > 0:
+        #     return
         rospy.loginfo("Got triggered")
         _, _, p_meas = self.u.listener()
         self.x, self.y = self.u.compute_traj(
-            self.param, "x_0", p_meas, "x_end", _, self.other_traj, self.sampling_time
+            self.param,
+            "x_0",
+            p_meas,
+            "x_end",
+            "x_0_lim",
+            self.other_traj,
+            self.sampling_time,
         )
-        self.u.plot(self.x, self.y, "desired_traj.png")
+        # self.u.plot(self.x, self.y, "desired_traj.png")
         self.total_steps = len(self.y)
         self.steps_left = self.total_steps
 
@@ -102,9 +109,9 @@ class Impedance_pos:
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
-                # if self.u.lim_check(self.param):
-                #     raise rospy.ROSInterruptException
+                if self.u.lim_check(self.param, self.t_meas_, p_meas):
+                    raise rospy.ROSInterruptException
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:
-            self.u.stop_drive()
+            self.stop()

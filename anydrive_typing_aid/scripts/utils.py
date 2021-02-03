@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 import csv
+from statistics import mean
 
 import fsmstate as fsm
 import pid
@@ -142,22 +143,26 @@ class utils:
             msg.joint_torque = torque
         self.pub_target.publish(msg)
 
-    def lim_check(self, position):
-        # if self.joint_position < position["up_limit"] or self.joint_position > position["down_limit"]:
-        # return True
+    def lim_check(self, param, t_meas_, p_meas):
+        if p_meas < param["x_0_lim"] or p_meas > param["x_end_lim"]:
+            print("pos_stop")
+            return True
         # elif self.joint_velocity > abs(position["v_max"]):
         #     return True
+        if len(t_meas_) < 5:
+            return False
         if (
-            self.joint_torque > position["tau_max"]
-            or self.joint_torque < position["tau_min"]
+            mean(t_meas_[-5:]) > param["tau_max"]
+            or mean(t_meas_[-5:]) < param["tau_min"]
         ):
+            print("tau_stop")
             return True
 
     # gives the value t_next when the required value is too high or too low
     def get_lim_val(self, t_meas, position):
-        if self.joint_torque > position["tau_max"]:
+        if t_meas > position["tau_max"]:
             return position["tau_max"]
-        if self.joint_torque < position["tau_min"]:
+        if t_meas < position["tau_min"]:
             return position["tau_min"]
 
     # def init_pos(self,p_meas,position):
@@ -277,7 +282,7 @@ class utils:
 
     def get_time(self):
         date = datetime.now()
-        name = date.strftime("%d-%m-%Y_%H-%M-%S")
+        name = date.strftime("%Y-%m-%d_%H-%M-%S")
         return name
 
     def concat_data(
@@ -302,7 +307,16 @@ class utils:
             writer.writeheader()
             writer.writerows([param])
 
-    def compute_traj(self, param, param_0, other_start_val, param_end, param_low, other_traj, sampling_time):
+    def compute_traj(
+        self,
+        param,
+        param_0,
+        other_start_val,
+        param_end,
+        param_low,
+        other_traj,
+        sampling_time,
+    ):
         if other_start_val == -99:
             x1, y1 = self.quadratic_fct(
                 param["t0"],
@@ -336,11 +350,7 @@ class utils:
             # put everything together
             x, y = self.torque_profile(y1, y2, y3, x1, x2, x3)
         else:
-            half_time = (
-                param["transition"] / 2.0
-                + param["t_end"]
-                - param["transition"]
-            )
+            half_time = param["transition"] / 2.0 + param["t_end"] - param["transition"]
             x3, y3 = self.quadratic_fct(
                 param["t_end"] - param["transition"],
                 half_time,

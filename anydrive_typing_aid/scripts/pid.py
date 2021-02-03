@@ -40,24 +40,23 @@ class pid:
             "t0": 0.0,
             "t_end": 1.0,
             "rate": 25,  # in hz
-            "x_end": 9.015493392944336,
-            "x_0_lim": 2.0243513584136963,
-            "x_end_lim": 12.032234191894531,
-            "x_0": 4.290712356567383,
+            "x_end": 1.5704847574234009,
+            "x_0_lim": -4.600384712219238,
+            "x_end_lim": 6.563328742980957,
+            "x_0": -2.823723077774048,
             "transition": 0.5,
-            "tau_min": 0.25,
-            "tau_max": 0.75,
-            "tol": 0.075,
-            "tau_0": 0.3,
+            "tol": 0.2,
+            "tau_0": 0.5,
             "tau_min": -1.0,
             "tau_max": 3.0,
-            "p_gain": 1.5,
+            "p_gain": 1.3,
             "i_gain": 0.5,
-            "d_gain": 0.2,
+            "d_gain": 0.5,
         }
+
         # self.param = self.u.set_PID(self.param)
-        # self.param = self.u.set_pos(self.param)
-        # print(self.param)
+        self.param = self.u.set_pos(self.param)
+        print(self.param)
         _, _, p_meas = self.u.listener()
         self.p_error = p_meas - self.param["x_end"]
         self.set_gains()
@@ -70,7 +69,7 @@ class pid:
         rospy.loginfo("Controller init finished")
 
         self.steps_left = 0
-        self.other_traj = False
+        self.other_traj = True
 
     def set_gains(self):
         self._p_gain = self.param["p_gain"]
@@ -111,12 +110,12 @@ class pid:
     # defined in self.param
     def filt(self, t_meas, t_cmd):
         # if true, values are out of bounds
-        if self.u.lim_check(self.param):
+        if self.u.lim_check(self.param, self.t_meas_, self.p_meas_[-1]):
             rospy.loginfo("value out of bounds")
             t_cmd = self.u.get_lim_val(t_meas, self.param)
         if abs(t_meas - t_cmd) >= self.param["tol"]:
             cte = self.u.check_sign(t_meas, t_cmd)
-            # rospy.loginfo("step to big, adapting")
+            rospy.loginfo("step to big, adapting")
             t_cmd = t_meas + cte * self.param["tol"]
         return t_cmd
 
@@ -134,7 +133,13 @@ class pid:
         rospy.loginfo("computing trajectory")
         _, _, p_meas = self.u.listener()
         self.x, self.y = self.u.compute_traj(
-            self.param, "x_0", p_meas, "x_end", _, self.other_traj, self.sampling_time
+            self.param,
+            "x_0",
+            p_meas,
+            "x_end",
+            "x_0_lim",
+            self.other_traj,
+            self.sampling_time,
         )
         self.total_steps = len(self.y)
         self.steps_left = self.total_steps
@@ -198,9 +203,9 @@ class pid:
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
-                if self.u.lim_check(self.param):
+                if self.u.lim_check(self.param, self.t_meas_, p_meas):
                     raise rospy.ROSInterruptException
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:
-            self.u.stop_drive()
+            self.stop()

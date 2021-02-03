@@ -25,14 +25,15 @@ class Friction:
 
         self.param = {
             "rate": 25,  # in hz
-            "tau_0": 0.4,
-            "tau_down": 0.0,
-            "tau_max": 1.0,
-            "v_des": 3,
-            "d_tau_up_per_sec": 0.4,
-            "d_tau_down_per_sec": 0.4,
-            "tau_min": 0.0,
-            "tau_max": 1.0,
+            "tau_0": 0.5,
+            "tau_up": 2.0,
+            "v_des": 4,
+            "d_tau_up_per_sec": 1.2,
+            "d_tau_down_per_sec": 1.2,
+            "tau_min": -1.0,
+            "tau_max": 3.0,
+            "x_0_lim": -4.600384712219238,
+            "x_end_lim": 6.563328742980957,
         }
 
         self.d_tau_up = self.param["d_tau_up_per_sec"] / self.param["rate"]
@@ -50,7 +51,7 @@ class Friction:
 
     def check_velocity(self, v_meas, v_des):
         if self.avg_vel():
-            if abs(self.avg_v) >= v_des:
+            if self.avg_v >= v_des:
                 return True
             else:
                 return False
@@ -58,10 +59,10 @@ class Friction:
             return False
 
     def avg_vel(self):
-        if len(self.v_meas_) < 5:
+        if len(self.v_meas_) < 10:
             return False
         else:
-            self.avg_v = mean(self.v_meas_[-5:])
+            self.avg_v = mean(self.v_meas_[-10:])
             return True
 
     def callback(self, msg):
@@ -90,11 +91,14 @@ class Friction:
     def run(self):
         rospy.loginfo("starting movement")
         try:
+            t_meas, v_meas, p_meas = self.u.listener()
             while not rospy.is_shutdown():
                 if self.move_up:
                     self.current_torque += self.d_tau_up
-                    if self.current_torque > self.param["tau_max"]:
-                        self.current_torque = self.param["tau_max"]
+                    if self.current_torque > self.param["tau_up"]:
+                        self.current_torque = self.param["tau_up"]
+                        # self.move_up = False
+                        # print("Finished moving up")
                     if self.check_velocity(v_meas, self.param["v_des"]):
                         self.move_up = False
                         print("Finished moving up")
@@ -102,6 +106,9 @@ class Friction:
                     self.current_torque -= self.d_tau_down
                     if self.current_torque < self.param["tau_0"]:
                         self.current_torque = self.param["tau_0"]
+
+                if self.u.lim_check(self.param, self.t_meas_, p_meas):
+                    raise rospy.ROSInterruptException
 
                 self.u.move(JOINT_TORQUE, self.p_des, self.v_des, self.current_torque)
                 self.t_cmd_ = self.u.store_one(self.current_torque, self.t_cmd_)
@@ -113,4 +120,4 @@ class Friction:
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:
-            self.u.stop_drive()
+            self.stop()
