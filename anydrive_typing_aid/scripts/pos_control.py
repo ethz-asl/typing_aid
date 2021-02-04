@@ -21,28 +21,36 @@ JOINT_POSITION_VELOCITY = 11
 class pos_mov:
     def __init__(self):
 
-        self.p_des, self.v_des, self.t_des, self.v_last = 0, 0, 0, 0
-        self.t_meas_, self.v_meas_, self.p_meas_, self.dy = [], [], [], []
+        self.p_cmd, self.v_cmd, self.t_cmd = 0, 0, 0
+        (
+            self.t_meas_,
+            self.v_meas_,
+            self.p_meas_,
+            self.dy,
+            self.t_cmd_,
+            self.v_cmd_,
+            self.p_cmd_,
+        ) = ([], [], [], [], [], [], [])
         self.u = utils.utils()
         self.param = {
-            "t0": 0.0,
-            "t_end": 7.0,
+            "transition_up": 0.5,
+            "duration_constant_up": 0.0,
+            "transition_down": 0.5,
             "x_end": 2.649951934814453,
             "x_0_lim": -2.3559787273406982,
             "x_end_lim": 5.186628818511963,
             "x_0": 0.40113598108291626,
-            "transition": 2.0,
             "rate": 50,
             "tau_0": 0.5,
             "p": 2,
             "i": 0.078,
             "d": 0.163,
-            "tau_min": -1,
-            "tau_max": 2,
+            "tau_min": -1.0,
+            "tau_max": 3.0,
         }
         # self.param = self.u.set_pos(self.param)
         # print(self.param)
-        self.u.save_param(self.param, "pos_control")
+        self.u.save_param(self.param, "pos_control", "pos_control/")
         self.rate_hz = self.param["rate"]
         self.sampling_time = 1.0 / self.rate_hz
 
@@ -51,40 +59,23 @@ class pos_mov:
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
 
+        self.other_traj = False
         self.steps_left = 0
-
-    def compute_traj(self, p_meas):
-        params = self.param
-        # way up :
-        x1, y1 = self.u.quadratic_fct(
-            params["t0"],
-            params["t0"] + params["transition"],
-            p_meas,
-            params["x_end"],
-            self.sampling_time,
-        )
-        x2, y2 = self.u.const(
-            params["x_end"],
-            params["t0"] + params["transition"],
-            params["t_end"] - params["transition"],
-            self.sampling_time,
-        )
-        x3, y3 = self.u.quadratic_fct(
-            params["t_end"] - params["transition"],
-            params["t_end"],
-            params["x_end"],
-            params["x_0"],
-            self.sampling_time,
-        )
-        # put everything together
-        return self.u.torque_profile(y1, y2, y3, x1, x2, x3)
 
     def callback(self, msg):
         if self.steps_left > 0:
             return
         rospy.loginfo("Got triggered")
         _, _, p_meas = self.u.listener()
-        self.x, self.y = self.compute_traj(p_meas)
+        self.x, self.y = self.u.compute_traj(
+            self.param,
+            "x_0",
+            p_meas,
+            "x_end",
+            _,
+            self.other_traj,
+            self.sampling_time,
+        )
         self.dy = np.diff(self.y) * self.rate_hz
         self.u.plot(self.x, self.y, "desired_traj.png")
         self.u.plot(self.x[:-1], self.dy, "desired_vel.png")
@@ -120,23 +111,29 @@ class pos_mov:
             while not rospy.is_shutdown():
                 if self.steps_left > 0:
                     # Moving up
-                    self.p_des = self.y[self.total_steps - self.steps_left]
-                    self.v_des = self.dy[self.total_steps - self.steps_left]
+                    self.p_cmd = self.y[self.total_steps - self.steps_left]
+                    self.v_cmd = self.dy[self.total_steps - self.steps_left]
                     self.u.move(
-                        JOINT_POSITION_VELOCITY, self.p_des, self.v_des, self.t_des
+                        JOINT_POSITION_VELOCITY, self.p_cmd, self.v_cmd, self.t_cmd
                     )
+                    self.t_cmd = 0.0
                     self.steps_left -= 1
                 else:
                     self.u.move(
-                        JOINT_TORQUE, self.p_des, self.v_des, self.param["tau_0"]
+                        JOINT_TORQUE, self.p_cmd, self.v_cmd, self.param["tau_0"]
                     )
+                    self.p_cmd, self.v_cmd = 0.0, 0.0
+
                 t_meas, v_meas, p_meas = self.u.listener()
                 self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
                     t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
                 )
-                if self.u.lim_check(self.param):
+                self.t_cmd_, self.v_cmd_, self.p_cmd_ = self.u.store(
+                    t_cmd, v_cmd, p_cmd, self.t_cmd_, self.v_cmd_, self.p_cmd_
+                )
+                if self.u.lim_check(self.param, self.t_meas_, p_meas):
                     raise rospy.ROSInterruptException
                 self.rate.sleep()
 
         except rospy.ROSInterruptException:
-            self.u.stop_drive()
+            self.stop()

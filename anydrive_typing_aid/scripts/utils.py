@@ -319,30 +319,32 @@ class utils:
     ):
         if other_start_val == -99:
             x1, y1 = self.quadratic_fct(
-                param["t0"],
-                param["t0"] + param["transition"],
+                0.0,
+                param["transition_up"],
                 param[param_0],
                 param[param_end],
                 sampling_time,
             )
         else:
             x1, y1 = self.quadratic_fct(
-                param["t0"],
-                param["t0"] + param["transition"],
+                0.0,
+                param["transition_up"],
                 other_start_val,
                 param[param_end],
                 sampling_time,
             )
         x2, y2 = self.const(
             param[param_end],
-            param["t0"] + param["transition"],
-            param["t_end"] - param["transition"],
+            param["transition_up"],
+            param["transition_up"] + param["duration_constant_up"],
             sampling_time,
         )
         if not other_traj:
             x3, y3 = self.quadratic_fct(
-                param["t_end"] - param["transition"],
-                param["t_end"],
+                param["transition_up"] + param["duration_constant_up"],
+                param["transition_up"]
+                + param["duration_constant_up"]
+                + param["transition_down"],
                 param[param_end],
                 param[param_0],
                 sampling_time,
@@ -350,9 +352,13 @@ class utils:
             # put everything together
             x, y = self.torque_profile(y1, y2, y3, x1, x2, x3)
         else:
-            half_time = param["transition"] / 2.0 + param["t_end"] - param["transition"]
+            half_time = (
+                param["transition_down"] / 2.0
+                + param["transition_up"]
+                + param["duration_constant_up"]
+            )
             x3, y3 = self.quadratic_fct(
-                param["t_end"] - param["transition"],
+                param["transition_up"] + param["duration_constant_up"],
                 half_time,
                 param[param_end],
                 param[param_low],
@@ -360,7 +366,9 @@ class utils:
             )
             x4, y4 = self.quadratic_fct(
                 half_time,
-                param["t_end"],
+                param["transition_up"]
+                + param["duration_constant_up"]
+                + param["transition_down"],
                 param[param_low],
                 param[param_0],
                 sampling_time,

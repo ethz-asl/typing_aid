@@ -25,19 +25,19 @@ class cte_mov:
         self.t_meas_, self.v_meas_, self.p_meas_, self.t_cmd_ = [], [], [], []
 
         self.param = {
-            "t0": 0.0,
-            "t_end": 1.0,
+            "transition_up": 0.5,
+            "duration_constant_up": 0.0,
+            "transition_down": 0.5,
             "rate": 80,  # in hz
             "tau_0": 0.5,
             "tau_low": 0.0,
             "tau_end": 1.5,
-            "transition": 0.5,
             "tau_min": -1.0,
             "tau_max": 3.0,
             "x_0_lim": -4.600384712219238,
             "x_end_lim": 6.563328742980957,
         }
-
+        self.u.save_param(self.param, "torque_profile", "torque_profile/")
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
@@ -69,7 +69,7 @@ class cte_mov:
 
     def stop(self):
         rospy.loginfo("Exit handler")
-        self.u.save_param(self.param, "torque_profile", "torque_profile/")
+
         # collecting the data
         self.u.concat_data(
             self.t_cmd_,

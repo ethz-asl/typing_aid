@@ -34,8 +34,10 @@ class Friction:
             "tau_max": 3.0,
             "x_0_lim": -4.600384712219238,
             "x_end_lim": 6.563328742980957,
+            "avg_time_vel": 0.2,
+            "avg_time_up": 1.0,
         }
-
+        self.u.save_param(self.param, "friction", "friction/")
         self.d_tau_up = self.param["d_tau_up_per_sec"] / self.param["rate"]
         self.d_tau_down = self.param["d_tau_down_per_sec"] / self.param["rate"]
 
@@ -45,6 +47,9 @@ class Friction:
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
+
+        self.avg_num_iter = self.param["avg_time_vel"] * rate_hz
+        self.num_tau_up = self.param["avg_time_up"] * rate_hz
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
@@ -59,10 +64,10 @@ class Friction:
             return False
 
     def avg_vel(self):
-        if len(self.v_meas_) < 10:
+        if len(self.v_meas_) < self.avg_num_iter:
             return False
         else:
-            self.avg_v = mean(self.v_meas_[-10:])
+            self.avg_v = mean(self.v_meas_[-self.avg_num_iter :])
             return True
 
     def callback(self, msg):
@@ -71,7 +76,7 @@ class Friction:
 
     def stop(self):
         rospy.loginfo("Exit handler")
-        self.u.save_param(self.param, "friction", "friction/")
+
         # collecting the data
         self.u.concat_data(
             self.t_cmd_,
@@ -97,8 +102,13 @@ class Friction:
                     self.current_torque += self.d_tau_up
                     if self.current_torque > self.param["tau_up"]:
                         self.current_torque = self.param["tau_up"]
-                        # self.move_up = False
-                        # print("Finished moving up")
+                        if (
+                            len(self.t_meas_) > self.num_tau_up
+                            and mean(self.t_meas_[-self.num_tau_up :])
+                            == self.param["tau_up"]
+                        ):
+                            self.move_up = False
+                            print("Finished moving up")
                     if self.check_velocity(v_meas, self.param["v_des"]):
                         self.move_up = False
                         print("Finished moving up")

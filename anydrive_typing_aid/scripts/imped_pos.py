@@ -24,15 +24,15 @@ class Impedance_pos:
         self.t_meas_, self.v_meas_, self.p_meas_, self.t_cmd_ = [], [], [], []
 
         self.param = {
-            "t0": 0.0,
-            "t_end": 1.0,
+            "transition_up": 0.5,
+            "duration_constant_up": 0.0,
+            "transition_down": 0.5,
             "rate": 25,  # in hz
             "x_end": 1.5704847574234009,
             "x_0_lim": -4.600384712219238,
             "x_end_lim": 6.563328742980957,
             "x_0": -2.823723077774048,
             "tau_0": 0.5,
-            "transition": 0.5,
             "K": 0.7,
             "tau_min": -1.0,
             "tau_max": 3.0,
@@ -40,6 +40,8 @@ class Impedance_pos:
 
         # self.param = self.u.set_pos(self.param)
         # print(self.param)
+
+        self.u.save_param(self.param, "imped_pos", "imped_pos/")
 
         self.sampling_time = 1.0 / self.param["rate"]
         rate_hz = self.param["rate"]
@@ -71,7 +73,7 @@ class Impedance_pos:
 
     def stop(self):
         rospy.loginfo("Exit handler")
-        self.u.save_param(self.param, "imped_pos", "imped_pos/")
+
         # collecting the data
         self.u.concat_data(
             self.t_cmd_,

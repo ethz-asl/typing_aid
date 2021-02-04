@@ -37,14 +37,14 @@ class pid:
         self.p_des, self.v_des = 0, 0
 
         self.param = {
-            "t0": 0.0,
-            "t_end": 1.0,
+            "transition_up": 0.5,
+            "duration_constant_up": 0.0,
+            "transition_down": 0.5,
             "rate": 25,  # in hz
             "x_end": 1.5704847574234009,
             "x_0_lim": -4.600384712219238,
             "x_end_lim": 6.563328742980957,
             "x_0": -2.823723077774048,
-            "transition": 0.5,
             "tol": 0.2,
             "tau_0": 0.5,
             "tau_min": -1.0,
@@ -57,6 +57,8 @@ class pid:
         # self.param = self.u.set_PID(self.param)
         self.param = self.u.set_pos(self.param)
         print(self.param)
+
+        self.u.save_param(self.param, "pid", "pid/")
         _, _, p_meas = self.u.listener()
         self.p_error = p_meas - self.param["x_end"]
         self.set_gains()
@@ -146,7 +148,7 @@ class pid:
 
     def stop(self):
         rospy.loginfo("Exit handler")
-        self.u.save_param(self.param, "pid", "pid/")
+
         # concatenating the data
         print("length1: {}".format(len(self.t_cmd_)))
         print("length2: {}".format(len(self.t_meas_)))
