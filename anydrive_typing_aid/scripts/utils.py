@@ -47,7 +47,13 @@ class utils:
         # print(self.joint_position)
         self.joint_velocity = msg.state.joint_velocity
         self.joint_torque = msg.state.joint_torque
-        return self.joint_torque, self.joint_velocity, self.joint_position
+        self.motor_current = msg.state.current
+        return (
+            self.joint_torque,
+            self.joint_velocity,
+            self.joint_position,
+            self.motor_current,
+        )
 
     def callback(self, msg):
         rospy.loginfo("saved value")
@@ -258,7 +264,14 @@ class utils:
         y = np.concatenate((y4, y5))
         return x, y
 
-    def store(self, t_meas, v_meas, p_meas, t_meas_, v_meas_, p_meas_):
+    def store(self, t_meas, v_meas, p_meas, i_meas, t_meas_, v_meas_, p_meas_, i_meas_):
+        t_meas_.append(t_meas)
+        v_meas_.append(v_meas)
+        p_meas_.append(p_meas)
+        i_meas_.append(i_meas)
+        return t_meas_, v_meas_, p_meas_, i_meas_
+
+    def store_pid(self, t_meas, v_meas, p_meas, t_meas_, v_meas_, p_meas_):
         t_meas_.append(t_meas)
         v_meas_.append(v_meas)
         p_meas_.append(p_meas)
@@ -286,17 +299,19 @@ class utils:
         return name
 
     def concat_data(
-        self, t_cmd, name_t_cmd, t_meas_, v_meas_, p_meas_, name_file, folder
+        self, t_cmd, name_t_cmd, t_meas_, v_meas_, p_meas_, i_meas_, name_file, folder
     ):
-        print("length1: {}".format(len(t_cmd)))
-        print("length2: {}".format(len(t_meas_)))
+        # print("length1: {}".format(len(t_cmd)))
+        # print("length2: {}".format(len(t_meas_)))
         name = self.get_time()
         path = "/home/asl-admin/Desktop/" + folder
-        data_concat = np.array((t_cmd[: len(t_meas_)], t_meas_, v_meas_, p_meas_)).T
-        print("Shape1: {}".format(data_concat.shape))
+        data_concat = np.array(
+            (t_cmd[: len(t_meas_)], t_meas_, v_meas_, p_meas_, i_meas_)
+        ).T
+        # print("Shape1: {}".format(data_concat.shape))
         data_pd = pd.DataFrame(
             data=data_concat,
-            columns=[name_t_cmd, "torque", "velovity", "position"],
+            columns=[name_t_cmd, "torque", "velovity", "position", "current"],
         )
         data_pd.to_csv(path + name + name_file + ".csv")
 
@@ -376,3 +391,8 @@ class utils:
             x5, y5 = self.torque_profile(y1, y2, y3, x1, x2, x3)
             x, y = self.add_profile(x5, y5, x4, y4)
         return x, y
+
+    def compute_der(self, x, rate):
+        dx = np.diff(x) * rate
+        dx = np.append(dx, dx[-1])
+        return dx

@@ -21,7 +21,13 @@ class Friction:
     def __init__(self):
         self.p_des, self.v_des, self.t_des, self.avg_v = 0, 0, 0, 0
         self.u = utils.utils()
-        self.t_meas_, self.v_meas_, self.p_meas_, self.t_cmd_ = [], [], [], []
+        self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_, self.t_cmd_ = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
 
         self.param = {
             "rate": 25,  # in hz
@@ -32,9 +38,9 @@ class Friction:
             "d_tau_down_per_sec": 1.2,
             "tau_min": -1.0,
             "tau_max": 3.0,
-            "x_0_lim": -4.600384712219238,
-            "x_end_lim": 6.563328742980957,
-            "avg_time_vel": 0.2,
+            "x_0_lim": -6.591731548309326,
+            "x_end_lim": 4.118906497955322,
+            "avg_time_vel": 0.5,
             "avg_time_up": 1.0,
         }
         self.u.save_param(self.param, "friction", "friction/")
@@ -48,8 +54,8 @@ class Friction:
         rate_hz = self.param["rate"]
         self.rate = rospy.Rate(rate_hz)
 
-        self.avg_num_iter = self.param["avg_time_vel"] * rate_hz
-        self.num_tau_up = self.param["avg_time_up"] * rate_hz
+        self.avg_num_iter = int(round(self.param["avg_time_vel"] * rate_hz))
+        self.num_tau_up = int(round(self.param["avg_time_up"] * rate_hz))
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
@@ -84,6 +90,7 @@ class Friction:
             self.t_meas_,
             self.v_meas_,
             self.p_meas_,
+            self.i_meas_,
             "_friction",
             "friction/",
         )
@@ -96,7 +103,7 @@ class Friction:
     def run(self):
         rospy.loginfo("starting movement")
         try:
-            t_meas, v_meas, p_meas = self.u.listener()
+            t_meas, v_meas, p_meas, _ = self.u.listener()
             while not rospy.is_shutdown():
                 if self.move_up:
                     self.current_torque += self.d_tau_up
@@ -105,7 +112,7 @@ class Friction:
                         if (
                             len(self.t_meas_) > self.num_tau_up
                             and mean(self.t_meas_[-self.num_tau_up :])
-                            == self.param["tau_up"]
+                            >= self.param["tau_up"] - 0.1
                         ):
                             self.move_up = False
                             print("Finished moving up")
@@ -122,9 +129,16 @@ class Friction:
 
                 self.u.move(JOINT_TORQUE, self.p_des, self.v_des, self.current_torque)
                 self.t_cmd_ = self.u.store_one(self.current_torque, self.t_cmd_)
-                t_meas, v_meas, p_meas = self.u.listener()
-                self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
-                    t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
+                t_meas, v_meas, p_meas, i_meas = self.u.listener()
+                self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_ = self.u.store(
+                    t_meas,
+                    v_meas,
+                    p_meas,
+                    i_meas,
+                    self.t_meas_,
+                    self.v_meas_,
+                    self.p_meas_,
+                    self.i_meas_,
                 )
                 # print("Current torque: {}".format(self.current_torque))
                 self.rate.sleep()

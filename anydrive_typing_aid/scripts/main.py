@@ -13,7 +13,7 @@ from pos_control import pos_mov
 from imped_pos import Impedance_pos
 from imped_vel import impedance_vel
 from friction import Friction
-
+from basic_pos_control import Basic_controller
 
 if __name__ == "__main__":
 
@@ -35,6 +35,8 @@ if __name__ == "__main__":
             ctrl = impedance_vel()
         elif controller == 6:
             ctrl = Friction()
+        else:
+            ctrl = Basic_controller()
 
         atexit.register(ctrl.stop)
 

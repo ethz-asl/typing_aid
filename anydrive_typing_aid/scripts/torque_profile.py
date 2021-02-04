@@ -22,7 +22,13 @@ class cte_mov:
     def __init__(self):
         self.p_des, self.v_des = 0, 0
         self.u = utils.utils()
-        self.t_meas_, self.v_meas_, self.p_meas_, self.t_cmd_ = [], [], [], []
+        self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_, self.t_cmd_ = (
+            [],
+            [],
+            [],
+            [],
+            [],
+        )
 
         self.param = {
             "transition_up": 0.5,
@@ -34,8 +40,8 @@ class cte_mov:
             "tau_end": 1.5,
             "tau_min": -1.0,
             "tau_max": 3.0,
-            "x_0_lim": -4.600384712219238,
-            "x_end_lim": 6.563328742980957,
+            "x_0_lim": -6.591731548309326,
+            "x_end_lim": 4.118906497955322,
         }
         self.u.save_param(self.param, "torque_profile", "torque_profile/")
         self.sampling_time = 1.0 / self.param["rate"]
@@ -77,6 +83,7 @@ class cte_mov:
             self.t_meas_,
             self.v_meas_,
             self.p_meas_,
+            self.i_meas_,
             "_cte_mov",
             "torque_profile/",
         )
@@ -99,9 +106,16 @@ class cte_mov:
                     t_cmd = self.param["tau_0"]
                 self.u.move(JOINT_TORQUE, self.p_des, self.v_des, t_cmd)
                 self.t_cmd_ = self.u.store_one(t_cmd, self.t_cmd_)
-                t_meas, v_meas, p_meas = self.u.listener()
-                self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
-                    t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
+                t_meas, v_meas, p_meas, i_meas = self.u.listener()
+                self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_ = self.u.store(
+                    t_meas,
+                    v_meas,
+                    p_meas,
+                    i_meas,
+                    self.t_meas_,
+                    self.v_meas_,
+                    self.p_meas_,
+                    self.i_meas_,
                 )
                 if self.u.lim_check(self.param, self.t_meas_, p_meas):
                     raise rospy.ROSInterruptException

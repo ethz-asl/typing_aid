@@ -26,13 +26,14 @@ class pid:
         self._last_time, self._p_error_last = None, None
         self.u = utils.utils()
 
-        self.t_meas_, self.v_meas_, self.p_meas_, self._p_error_, self.t_cmd_ = (
-            [],
-            [],
-            [],
-            [],
-            [],
-        )
+        (
+            self.t_meas_,
+            self.v_meas_,
+            self.p_meas_,
+            self.i_meas_,
+            self._p_error_,
+            self.t_cmd_,
+        ) = ([], [], [], [], [], [])
         self.p_, self.i_, self.d_ = [], [], []
         self.p_des, self.v_des = 0, 0
 
@@ -41,10 +42,10 @@ class pid:
             "duration_constant_up": 0.0,
             "transition_down": 0.5,
             "rate": 25,  # in hz
-            "x_end": 1.5704847574234009,
-            "x_0_lim": -4.600384712219238,
-            "x_end_lim": 6.563328742980957,
-            "x_0": -2.823723077774048,
+            "x_0_lim": -6.591731548309326,
+            "x_end_lim": 4.118906497955322,
+            "x_0": -4.318036079406738,
+            "x_end": -1.063144564628601,
             "tol": 0.2,
             "tau_0": 0.5,
             "tau_min": -1.0,
@@ -59,7 +60,7 @@ class pid:
         print(self.param)
 
         self.u.save_param(self.param, "pid", "pid/")
-        _, _, p_meas = self.u.listener()
+        _, _, p_meas, _ = self.u.listener()
         self.p_error = p_meas - self.param["x_end"]
         self.set_gains()
 
@@ -103,7 +104,7 @@ class pid:
 
         d = self._d_gain * self._d_error
 
-        self.p_, self.i_, self.d_ = self.u.store(p, i, d, self.p_, self.i_, self.d_)
+        self.p_, self.i_, self.d_ = self.u.store_pid(p, i, d, self.p_, self.i_, self.d_)
 
         self.cmd = p + i + d
         return self.cmd
@@ -133,7 +134,7 @@ class pid:
         if self.steps_left > 0:
             return
         rospy.loginfo("computing trajectory")
-        _, _, p_meas = self.u.listener()
+        _, _, p_meas, _ = self.u.listener()
         self.x, self.y = self.u.compute_traj(
             self.param,
             "x_0",
@@ -158,11 +159,12 @@ class pid:
                 self.t_meas_,
                 self.v_meas_,
                 self.p_meas_,
+                self.i_meas_,
             )
         ).T
         data_pd = pd.DataFrame(
             data=data_concat,
-            columns=["commanded torque", "torque", "velovity", "position"],
+            columns=["commanded torque", "torque", "velovity", "position", "current"],
         )
         print("length1: {}".format(len(self.p_)))
         print("length2: {}".format(len(self._p_error_)))
@@ -191,7 +193,7 @@ class pid:
             while not rospy.is_shutdown():
                 if self.steps_left > 0:
                     # Moving up
-                    t_meas, v_meas, p_meas = self.u.listener()
+                    t_meas, v_meas, p_meas, _ = self.u.listener()
                     self.p_error = p_meas - self.y[self.total_steps - self.steps_left]
                     self._p_error_ = self.u.store_one(self.p_error, self._p_error_)
                     t_cmd = self.update(self.p_error)
@@ -201,9 +203,16 @@ class pid:
                     t_cmd = self.param["tau_0"]
                 self.u.move(JOINT_TORQUE, self.p_des, self.v_des, t_cmd)
                 self.t_cmd_ = self.u.store_one(t_cmd, self.t_cmd_)
-                t_meas, v_meas, p_meas = self.u.listener()
-                self.t_meas_, self.v_meas_, self.p_meas_ = self.u.store(
-                    t_meas, v_meas, p_meas, self.t_meas_, self.v_meas_, self.p_meas_
+                t_meas, v_meas, p_meas, i_meas = self.u.listener()
+                self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_ = self.u.store(
+                    t_meas,
+                    v_meas,
+                    p_meas,
+                    i_meas,
+                    self.t_meas_,
+                    self.v_meas_,
+                    self.p_meas_,
+                    self.i_meas_,
                 )
                 if self.u.lim_check(self.param, self.t_meas_, p_meas):
                     raise rospy.ROSInterruptException

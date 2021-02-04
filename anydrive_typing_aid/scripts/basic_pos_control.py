@@ -18,7 +18,7 @@ JOINT_TORQUE = 10
 JOINT_POSITION_VELOCITY = 11
 
 
-class pos_mov:
+class Basic_controller:
     def __init__(self):
 
         self.p_cmd, self.v_cmd, self.t_cmd = 0, 0, 0
@@ -34,55 +34,33 @@ class pos_mov:
         ) = ([], [], [], [], [], [], [], [])
         self.u = utils.utils()
         self.param = {
-            "transition_up": 0.6,
-            "duration_constant_up": 0.0,
-            "transition_down": 0.5,
-            "x_0_lim": -6.591731548309326,
-            "x_end_lim": 4.118906497955322,
-            "x_0": -4.318036079406738,
-            "x_end": -1.063144564628601,
-            "rate": 200,
+            "x_0_lim": 1.3145017623901367,
+            "x_end_lim": 11.554518699645996,
+            "x_0": 2.713468313217163,
+            "x_end": 6.291718482971191,
             "tau_0": 0.5,
             "p": 2,
             "i": 0.078,
             "d": 0.163,
             "tau_min": -1.0,
             "tau_max": 3.0,
+            "rate": 1,
         }
 
         # self.param = self.u.set_pos(self.param)
         # print(self.param)
         self.u.save_param(self.param, "pos_control", "pos_control/")
-        self.rate_hz = self.param["rate"]
-        self.sampling_time = 1.0 / self.rate_hz
-
-        self.rate = rospy.Rate(self.rate_hz)
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
-
-        self.other_traj = False
+        rate_hz = self.param["rate"]
+        self.rate = rospy.Rate(rate_hz)
         self.steps_left = 0
+        self.i = 1
 
     def callback(self, msg):
-        if self.steps_left > 0:
-            return
-        rospy.loginfo("Got triggered")
-        _, _, p_meas, _ = self.u.listener()
-        self.x, self.y = self.u.compute_traj(
-            self.param,
-            "x_0",
-            p_meas,
-            "x_end",
-            _,
-            self.other_traj,
-            self.sampling_time,
-        )
-        self.dy = self.u.compute_der(self.y, self.rate_hz)
-        # self.u.plot(self.x, self.y, "desired_traj.png")
-        # self.u.plot(self.x[:-1], self.dy, "desired_vel.png")
-        self.total_steps = len(self.y)
-        self.steps_left = self.total_steps
+        self.p_cmd = self.param["x_end"]
+        self.steps_left = 3
 
     def stop(self):
         print("Exit handler")
@@ -111,8 +89,8 @@ class pos_mov:
             ],
         )
         name = self.u.get_time()
-        path = "/home/asl-admin/Desktop/pos_control/"
-        data_pd.to_csv(path + name + "_pos_control.csv")
+        path = "/home/asl-admin/Desktop/basic/"
+        data_pd.to_csv(path + name + "_basic_pos_control.csv")
         # # plotting the desired path
         # x = np.arange(0, len(self.t_meas_), 1)
         # self.u.plot(x, self.y , "desired_traj.png")
@@ -124,18 +102,13 @@ class pos_mov:
         try:
 
             # change pid gains
-            self.u.pid(JOINT_POSITION, self.param)
-            # also dn work when unchanged
+            # self.u.pid(JOINT_POSITION, self.param)
             while not rospy.is_shutdown():
                 if self.steps_left > 0:
-                    # Moving up
-                    self.p_cmd = self.y[self.total_steps - self.steps_left]
-                    self.v_cmd = self.dy[self.total_steps - self.steps_left]
-                    self.u.move(
-                        JOINT_POSITION_VELOCITY, self.p_cmd, self.v_cmd, self.t_cmd
-                    )
+                    self.u.move(JOINT_POSITION, self.p_cmd, self.v_cmd, self.t_cmd)
                     self.t_cmd = 0.0
                     self.steps_left -= 1
+                    self.p_cmd = self.param["x_0"]
                 else:
                     self.t_cmd = self.param["tau_0"]
                     self.u.move(JOINT_TORQUE, self.p_cmd, self.v_cmd, self.t_cmd)
