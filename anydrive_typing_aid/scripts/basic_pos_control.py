@@ -50,6 +50,7 @@ class Basic_controller:
         # self.param = self.u.set_pos(self.param)
         # print(self.param)
         self.u.save_param(self.param, "pos_control", "pos_control/")
+        self.cmd_store = 0.0
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
         rospy.loginfo("Controller init finished")
@@ -60,7 +61,7 @@ class Basic_controller:
 
     def callback(self, msg):
         self.p_cmd = self.param["x_end"]
-        self.steps_left = 3
+        self.steps_left = 2
 
     def stop(self):
         print("Exit handler")
@@ -106,13 +107,14 @@ class Basic_controller:
             while not rospy.is_shutdown():
                 if self.steps_left > 0:
                     self.u.move(JOINT_POSITION, self.p_cmd, self.v_cmd, self.t_cmd)
+                    self.cmd_store = self.p_cmd
                     self.t_cmd = 0.0
                     self.steps_left -= 1
                     self.p_cmd = self.param["x_0"]
                 else:
                     self.t_cmd = self.param["tau_0"]
                     self.u.move(JOINT_TORQUE, self.p_cmd, self.v_cmd, self.t_cmd)
-                    self.p_cmd, self.v_cmd = 0.0, 0.0
+                    self.p_cmd, self.v_cmd, self.cmd_store = 0.0, 0.0, 0.0
 
                 t_meas, v_meas, p_meas, i_meas = self.u.listener()
                 self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_ = self.u.store(
@@ -128,7 +130,7 @@ class Basic_controller:
                 self.t_cmd_, self.v_cmd_, self.p_cmd_ = self.u.store_pid(
                     self.t_cmd,
                     self.v_cmd,
-                    self.p_cmd,
+                    self.cmd_store,
                     self.t_cmd_,
                     self.v_cmd_,
                     self.p_cmd_,

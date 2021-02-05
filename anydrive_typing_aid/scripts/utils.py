@@ -311,7 +311,7 @@ class utils:
         # print("Shape1: {}".format(data_concat.shape))
         data_pd = pd.DataFrame(
             data=data_concat,
-            columns=[name_t_cmd, "torque", "velovity", "position", "current"],
+            columns=[name_t_cmd, "torque", "velocity", "position", "current"],
         )
         data_pd.to_csv(path + name + name_file + ".csv")
 

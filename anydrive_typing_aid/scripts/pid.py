@@ -50,7 +50,7 @@ class pid:
             "tau_0": 0.5,
             "tau_min": -1.0,
             "tau_max": 3.0,
-            "p_gain": 1.3,
+            "p_gain": 1.1,
             "i_gain": 0.5,
             "d_gain": 0.5,
         }
@@ -80,10 +80,9 @@ class pid:
         self._d_gain = self.param["d_gain"]
 
     def update(self, p_error, wind_val=0):
-        t = time.time()
         if self._last_time is None:
-            self._last_time = t
-        dt = t - self._last_time
+            self._last_time = 0
+        dt = self.sampling_time - self._last_time
 
         if dt == 0 or math.isnan(dt) or math.isinf(dt):
             return 0
