@@ -40,8 +40,8 @@ class cte_mov:
             "tau_end": 1.5,
             "tau_min": -1.0,
             "tau_max": 3.0,
-            "x_0_lim": -6.591731548309326,
-            "x_end_lim": 4.118906497955322,
+            "x_0_lim": -3.8042964935302734,
+            "x_end_lim": 4.61220121383667,
         }
         self.u.save_param(self.param, "torque_profile", "torque_profile/")
         self.sampling_time = 1.0 / self.param["rate"]

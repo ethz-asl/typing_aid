@@ -37,10 +37,10 @@ class pos_mov:
             "transition_up": 0.6,
             "duration_constant_up": 0.0,
             "transition_down": 0.5,
-            "x_0_lim": -6.591731548309326,
-            "x_end_lim": 4.118906497955322,
-            "x_0": -4.318036079406738,
-            "x_end": -1.063144564628601,
+            "x_end": 0.4290352761745453,
+            "x_0_lim": -5.911866188049316,
+            "x_end_lim": 4.441066265106201,
+            "x_0": -4.50688362121582,
             "rate": 200,
             "tau_0": 0.5,
             "p": 2,
@@ -131,9 +131,7 @@ class pos_mov:
                     # Moving up
                     self.p_cmd = self.y[self.total_steps - self.steps_left]
                     self.v_cmd = self.dy[self.total_steps - self.steps_left]
-                    self.u.move(
-                        JOINT_POSITION_VELOCITY, self.p_cmd, self.v_cmd, self.t_cmd
-                    )
+                    self.u.move(JOINT_POSITION, self.p_cmd, self.v_cmd, self.t_cmd)
                     self.t_cmd = 0.0
                     self.steps_left -= 1
                 else:
