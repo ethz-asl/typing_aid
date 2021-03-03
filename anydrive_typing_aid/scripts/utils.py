@@ -25,16 +25,6 @@ JOINT_TORQUE = 10
 class utils:
     def __init__(self):
         self.prefix = "/anydrive"
-        # drive_name = "anydrive"
-
-        # rospy.init_node("controller", anonymous=True)
-
-        # Publisher for : joint_position
-        # joint_velocity
-        # joint_torque
-        # gear_position
-        # gear_velocity
-        # PID param ...
         self.pub_target = rospy.Publisher(
             self.prefix + "/anydrive/command", msg_defs.Command, queue_size=10
         )
@@ -44,7 +34,6 @@ class utils:
             self.prefix + "/anydrive/reading", msg_defs.Reading
         )
         self.joint_position = msg.state.joint_position
-        # print(self.joint_position)
         self.joint_velocity = msg.state.joint_velocity
         self.joint_torque = msg.state.joint_torque
         self.motor_current = msg.state.current
@@ -74,7 +63,6 @@ class utils:
                 self.index = True
             while self.index:
                 # sending the desired torque to the drive
-                # rospy.loginfo("sending 0 torque to calibrate")
                 msg_t = msg_defs.Command()
                 msg_t.mode.mode = np.uint16(10)
                 msg_t.joint_torque = float(0)
@@ -97,7 +85,7 @@ class utils:
             self.pub_target.publish(msg)
         return param
 
-    # to change pid gains from motor
+    # to change pid gains of motor
     def pid(self, mode, param):
         msg = msg_defs.Command()
         msg.mode.mode = np.uint16(mode)
@@ -116,23 +104,6 @@ class utils:
         # initialization of p_error
         param["p_error"] = input("p_error")
         return param
-
-    # def error(self, mode, position, velocity, torque):
-    #     #computes the difference between the actual position/velocity/torque and the desired one
-
-    #     if self.joint_position is not None and position is not None:
-    #         pass
-    #     if mode in (JOINT_POSITION,11,12):  # Tracks joint position
-    #         #difference = r*(position - self.joint_position)
-    #         difference = (position - self.joint_position)
-    #         rospy.loginfo("position difference: {}".format(difference))
-    #     if mode in (JOINT_VELOCITY,11,12): # Tracks joint velocity
-    #         difference = (position - self.joint_velocity)
-    #         rospy.loginfo("velocity difference: {}".format(difference))
-    #     if mode in (JOINT_TORQUE,12): # Tracks joint torque
-    #         difference = (position - self.joint_torque)
-    #         rospy.loginfo("torque difference: {}".format(difference))
-    #     return difference
 
     def move(self, mode, position, velocity, torque):
         msg = msg_defs.Command()
@@ -153,8 +124,6 @@ class utils:
         if p_meas < param["x_0_lim"] or p_meas > param["x_end_lim"]:
             print("pos_stop")
             return True
-        # elif self.joint_velocity > abs(position["v_max"]):
-        #     return True
         if len(t_meas_) < 5:
             return False
         if (
@@ -171,34 +140,14 @@ class utils:
         if t_meas < position["tau_min"]:
             return position["tau_min"]
 
-    # def init_pos(self,p_meas,position):
-    #     if p_meas < position["up_position"]:
-    #         self.go = 1
-    #     elif p_meas > position["up_position"]:
-    #         self.go = 0
-    #     else:
-    #         raise rospy.ROSInterruptException
-    #     return self.go
-
-    # def stand_still(self,time):
-    #     rospy.loginfo("=================================")
-    #     rospy.loginfo("standing still")
-    #     msg = msg_defs.Command()
-    #     msg.mode.mode = 1
-    #     self.pub_target.publish(msg)
-    #     rospy.sleep(time)#in seconds
-
     def stop_drive(self):
         rospy.loginfo("Stopping drive")
         msg = msg_defs.Command()
         # freezing the drive
         msg.mode.mode = 1
         self.pub_target.publish(msg)
-        # goes to configure
-        # fsm.FSM_state().set_FSM_state(3)
         rospy.loginfo("Stopped drive")
 
-    # https://en.wikipedia.org/wiki/Logistic_function
     def logistic_fct(self, x, midpoint, max_val, steepness):
         self.fct = max_val / (1 + np.exp(-steepness * (x - midpoint)))
         return self.fct
@@ -253,8 +202,6 @@ class utils:
 
     # put the pieces together
     def torque_profile(self, y1, y2, y3, x1, x2, x3):
-        # assert y1[-1] == y2[0] and y2[-1] == y3[0]
-        # assert x1[-1] == x2[0] and x2[-1] == x3[0]
         x = np.concatenate((x1, x2, x3))
         y = np.concatenate((y1, y2, y3))
         return x, y
@@ -301,14 +248,12 @@ class utils:
     def concat_data(
         self, t_cmd, name_t_cmd, t_meas_, v_meas_, p_meas_, i_meas_, name_file, folder
     ):
-        # print("length1: {}".format(len(t_cmd)))
-        # print("length2: {}".format(len(t_meas_)))
         name = self.get_time()
         path = "/home/asl-admin/Desktop/" + folder
         data_concat = np.array(
             (t_cmd[: len(t_meas_)], t_meas_, v_meas_, p_meas_, i_meas_)
         ).T
-        # print("Shape1: {}".format(data_concat.shape))
+
         data_pd = pd.DataFrame(
             data=data_concat,
             columns=[name_t_cmd, "torque", "velocity", "position", "current"],

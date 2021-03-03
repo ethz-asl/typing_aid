@@ -180,10 +180,7 @@ class pid:
         name = self.u.get_time()
         path = "/home/asl-admin/Desktop/pid/"
         all_in.to_csv(path + name + "_pid.csv")
-        # x = np.arange(0, len(self.t_meas_), 1)
-        # self.u.plot(x, self.y , "desired_traj.png")
-        # self.u.plot(x, self.t_meas_ , "torque.png")
-        # self.u.plot(x, self.p_error_ , "position_error.png")
+
         self.u.stop_drive()
 
     def run(self):

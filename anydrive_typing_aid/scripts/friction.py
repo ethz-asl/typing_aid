@@ -94,10 +94,7 @@ class Friction:
             "_friction",
             "friction/",
         )
-        # # plotting the desired path
-        # x = np.arange(0, len(self.t_meas_), 1)
-        # self.u.plot(x, self.y , "desired_traj.png")
-        # self.u.plot(x, self.t_meas_ , "torque.png")
+
         self.u.stop_drive()
 
     def run(self):
