@@ -34,10 +34,10 @@ class Basic_controller:
         ) = ([], [], [], [], [], [], [], [])
         self.u = utils.utils()
         self.param = {
-            "x_0_lim": 1.3145017623901367,
-            "x_end_lim": 11.554518699645996,
-            "x_0": 2.713468313217163,
-            "x_end": 6.291718482971191,
+            "x_0_lim": -13.305917739868164,
+            "x_end_lim": -1.3176895380020142,
+            "x_0": -11.7498140335083,
+            "x_end": -6.833189487457275,
             "tau_0": 0.5,
             "tau_min": -1.0,
             "tau_max": 3.0,
@@ -127,7 +127,7 @@ class Basic_controller:
                 self.t_cmd_, self.v_cmd_, self.p_cmd_ = self.u.store_pid(
                     self.t_cmd,
                     self.v_cmd,
-                    self.cmd_store,
+                    self.p_cmd,
                     self.t_cmd_,
                     self.v_cmd_,
                     self.p_cmd_,
