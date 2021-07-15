@@ -1,5 +1,11 @@
 <launch>
+    <arg name="monitor" default="false"/>
+
     <include file="$(find anydrive_ethercat_ros)/launch/anydrive_ethercat_ros.launch">
+        <arg name="setup_file" value="$(find anydrive_typing_aid)/config/setup.yaml"/>
+    </include>
+
+    <include if="$(arg monitor)" file="$(find rqt_anydrive_monitor)/launch/rqt_anydrive_monitor.launch">
         <arg name="setup_file" value="$(find anydrive_typing_aid)/config/setup.yaml"/>
     </include>
 </launch>

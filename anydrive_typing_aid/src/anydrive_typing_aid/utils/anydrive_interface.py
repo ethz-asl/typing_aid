@@ -1,13 +1,34 @@
 import rospy
-from anydrive_msgs.msg import Reading, Command
+import numpy as np
+
+from anydrive_msgs.msg import Reading, Command, FsmState
+from anydrive_msgs.srv import SetFsmGoalState
+
+from anydrive_typing_aid.utils.utilities import state_translator
 
 
 class AnydriveInterface:
     def __init__(self):
         self.prefix = "/anydrive"
-        self.pub_target = rospy.Publisher(
+        self.pub_command = rospy.Publisher(
             self.prefix + "/anydrive/command", Command, queue_size=10
         )
+
+        srv_name = "anydrive/set_goal_state"
+        rospy.wait_for_service(srv_name)
+        self.srv_set_state = rospy.ServiceProxy(srv_name, SetFsmGoalState)
+
+    def set_fsm_state(self, state):
+        assert type(state) is int
+        try:
+            msg = FsmState()
+            msg.state = np.uint8(state)
+            device_name = "anydrive"
+            self.srv_set_state(device_name, msg)
+        except rospy.ServiceException as e:
+            print("Service call failed : %s " % e)
+        state_string = state_translator(state)
+        rospy.loginfo("FSM state changed to {}".format(state_string))
 
     def listener(self):
         msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", Reading)
@@ -44,7 +65,7 @@ class AnydriveInterface:
                 msg_t = msg_defs.Command()
                 msg_t.mode.mode = np.uint16(10)
                 msg_t.joint_torque = float(0)
-                self.pub_target.publish(msg_t)
+                self.pub_command.publish(msg_t)
                 rate.sleep()
             msg = rospy.wait_for_message(
                 self.prefix + "/anydrive/reading", msg_defs.Reading
@@ -60,7 +81,7 @@ class AnydriveInterface:
 
             msg = msg_defs.Command()
             msg.mode.mode = 1
-            self.pub_target.publish(msg)
+            self.pub_command.publish(msg)
         return param
 
     # to change pid gains of motor
@@ -73,7 +94,7 @@ class AnydriveInterface:
         msg.pid_gains_i = float(i)
         d = param["d"]
         msg.pid_gains_d = float(d)
-        self.pub_target.publish(msg)
+        self.pub_command.publish(msg)
 
     def set_PID(self, param):
         param["p_gain"] = input("p_gain")
@@ -96,7 +117,7 @@ class AnydriveInterface:
         if mode in (JOINT_TORQUE, 12):
             torque = float(torque)
             msg.joint_torque = torque
-        self.pub_target.publish(msg)
+        self.pub_command.publish(msg)
 
     def lim_check(self, param, t_meas_, p_meas):
         if p_meas < param["x_0_lim"] or p_meas > param["x_end_lim"]:
@@ -123,6 +144,6 @@ class AnydriveInterface:
         msg = msg_defs.Command()
         # freezing the drive
         msg.mode.mode = 1
-        self.pub_target.publish(msg)
+        self.pub_command.publish(msg)
         rospy.loginfo("Stopped drive")
 
