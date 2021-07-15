@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-
-
 import rospy
 from std_msgs.msg import String, Float64, Header, Empty
 from math import pi
@@ -9,7 +6,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 import csv
-from statistics import mean
+
+
+MODE_ID_FREEZE = 1
+MODE_ID_JOINT_POS = 8
+MODE_ID_JOINT_VEL = 9
+MODE_ID_JOINT_TRQ = 10
+MODE_ID_JOINT_POS_VEL = 11
+MODE_ID_JOINT_POS_VEL_TRQ = 12
 
 
 def state_translator(state_int):

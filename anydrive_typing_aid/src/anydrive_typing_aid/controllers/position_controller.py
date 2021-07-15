@@ -1,25 +1,14 @@
-#!/usr/bin/env python
-# coding=utf-8
-
 import rospy
 from std_msgs.msg import String, Float64, Header, Empty
-import anydrive_msgs.msg as msg_defs
-from math import pi
 import pandas as pd
 import numpy as np
 
-import fsmstate as fsm
-import utils
-
-global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE, JOINT_POSITION_VELOCITY
-JOINT_POSITION = 8
-JOINT_VELOCITY = 9
-JOINT_TORQUE = 10
-JOINT_POSITION_VELOCITY = 11
+from anydrive_typing_aid.controllers.base import BaseController
 
 
-class pos_mov:
-    def __init__(self):
+class PositionController(BaseController):
+    def __init__(self, drv_interface):
+        BaseController.__init__(self, drv_interface)
 
         self.p_cmd, self.v_cmd, self.t_cmd = 0, 0, 0
         (
@@ -33,7 +22,7 @@ class pos_mov:
             self.p_cmd_,
         ) = ([], [], [], [], [], [], [], [])
         self.u = utils.utils()
-        self.param = {
+        self.parameters = {
             "transition_up": 0.6,
             "duration_constant_up": 0.0,
             "transition_down": 0.5,
@@ -70,13 +59,7 @@ class pos_mov:
         rospy.loginfo("Got triggered")
         _, _, p_meas, _ = self.u.listener()
         self.x, self.y = self.u.compute_traj(
-            self.param,
-            "x_0",
-            p_meas,
-            "x_end",
-            _,
-            self.other_traj,
-            self.sampling_time,
+            self.param, "x_0", p_meas, "x_end", _, self.other_traj, self.sampling_time,
         )
         self.dy = self.u.compute_der(self.y, self.rate_hz)
         # self.u.plot(self.x, self.y, "desired_traj.png")
@@ -120,9 +103,8 @@ class pos_mov:
         self.u.stop_drive()
 
     def run(self):
-        rospy.loginfo("starting movement")
+        rospy.loginfo("Starting position controller")
         try:
-
             # change pid gains
             self.u.pid(JOINT_POSITION, self.param)
             # also dn work when unchanged

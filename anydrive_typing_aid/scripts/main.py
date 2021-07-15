@@ -1,47 +1,59 @@
 #!/usr/bin/env python
-# coding=utf-8
 
 import atexit
-
 import rospy
 
-import fsmstate as fsm
-import utils
-from torque_profile import cte_mov
-from pid import pid
-from pos_control import pos_mov
-from imped_pos import Impedance_pos
-from imped_vel import impedance_vel
-from friction import Friction
-from basic_pos_control import Basic_controller
+# from torque_profile import cte_mov
+# from pid import pid
+# from pos_control import pos_mov
+# from imped_pos import Impedance_pos
+# from imped_vel import impedance_vel
+# from friction import Friction
+# from basic_pos_control import Basic_controller
+
+from anydrive_typing_aid.utils.anydrive_interface import AnydriveInterface
+from anydrive_typing_aid.controllers.position_controller import PositionController
 
 if __name__ == "__main__":
+    rospy.init_node("typing_aid")
 
+    drv_interface = AnydriveInterface()
+    drv_interface.set_fsm_state(4)
+
+    controller = input(
+        "Choose the controller method\n"
+        "1 = position controller\n"
+        "2 = torque controller\n"
+        "3 = pid controller\n"
+        "4 = impedance on pos controller\n"
+        "5 = impedance on vel controller\n"
+        "6 = friction controller\n"
+    )
+    if controller == 1:
+        ctrl = PositionController(drv_interface)
+    # elif controller == 2:
+    #     ctrl = cte_mov()
+    # elif controller == 3:
+    #     ctrl = pid()
+    # elif controller == 4:
+    #     ctrl = Impedance_pos()
+    # elif controller == 5:
+    #     ctrl = impedance_vel()
+    # elif controller == 6:
+    #     ctrl = Friction()
+    else:
+        rospy.logwarn("Invalid selection. Falling back to position controller.")
+        ctrl = PositionController(drv_interface)
+
+    rate = rospy.Rate(20)
+    rospy.loginfo("Starting loop ")
     try:
-        rospy.init_node("controller", anonymous=True)
-
-        controller = input(
-            "Choose the controller method  \n 1 = position controller \n 2 = torque controller \n 3 = pid controller \n 4 = impedance on pos controller \n 5 = impedance on vel controller \n 6 = friction controller \n"
-        )
-        if controller == 1:
-            ctrl = pos_mov()
-        elif controller == 2:
-            ctrl = cte_mov()
-        elif controller == 3:
-            ctrl = pid()
-        elif controller == 4:
-            ctrl = Impedance_pos()
-        elif controller == 5:
-            ctrl = impedance_vel()
-        elif controller == 6:
-            ctrl = Friction()
-        else:
-            ctrl = Basic_controller()
-
-        atexit.register(ctrl.stop)
-
-        fsm.FSM_state().set_FSM_state(4)
-        ctrl.run()
-
+        while not rospy.is_shutdown():
+            ctrl.step()
+            rate.sleep()
     except rospy.ROSInterruptException:
-        utils.utils().stop_drive()
+        rospy.loginfo("Ran interrupt handler")
+    finally:
+        rospy.loginfo("Shutting down")
+        ctrl.stop()
+        drv_interface.stop_drive()

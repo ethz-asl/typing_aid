@@ -1,10 +1,12 @@
 import rospy
 import numpy as np
 
+from std_msgs.msg import Empty
 from anydrive_msgs.msg import Reading, Command, FsmState
 from anydrive_msgs.srv import SetFsmGoalState
 
 from anydrive_typing_aid.utils.utilities import state_translator
+import anydrive_typing_aid.utils.utilities as utilities
 
 
 class AnydriveInterface:
@@ -52,7 +54,7 @@ class AnydriveInterface:
         rate = rospy.Rate(param["rate"])
         choice = None
         # going into control op state
-        fsm.FSM_state().set_FSM_state(4)
+        self.set_fsm_state(4)
         # starting loop for calibration
         while choice < 5:
             choice = input(
@@ -62,14 +64,12 @@ class AnydriveInterface:
                 self.index = True
             while self.index:
                 # sending the desired torque to the drive
-                msg_t = msg_defs.Command()
+                msg_t = Command()
                 msg_t.mode.mode = np.uint16(10)
                 msg_t.joint_torque = float(0)
                 self.pub_command.publish(msg_t)
                 rate.sleep()
-            msg = rospy.wait_for_message(
-                self.prefix + "/anydrive/reading", msg_defs.Reading
-            )
+            msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", Reading)
             if choice == 1:
                 param["x_end_lim"] = msg.state.joint_position
             elif choice == 2:
@@ -79,14 +79,14 @@ class AnydriveInterface:
             elif choice == 4:
                 param["x_0_lim"] = msg.state.joint_position
 
-            msg = msg_defs.Command()
+            msg = Command()
             msg.mode.mode = 1
             self.pub_command.publish(msg)
         return param
 
     # to change pid gains of motor
     def pid(self, mode, param):
-        msg = msg_defs.Command()
+        msg = Command()
         msg.mode.mode = np.uint16(mode)
         p = param["p"]
         msg.pid_gains_p = float(p)
@@ -105,16 +105,24 @@ class AnydriveInterface:
         return param
 
     def move(self, mode, position, velocity, torque):
-        msg = msg_defs.Command()
+        msg = Command()
         msg.mode.mode = np.uint16(mode)
-        if mode in (JOINT_POSITION, 11, 12):
+        if mode in (
+            utilities.MODE_ID_JOINT_POS,
+            utilities.MODE_ID_JOINT_POS_VEL,
+            utilities.MODE_ID_JOINT_POS_VEL_TRQ,
+        ):
             msg.joint_position = position
-        if mode in (JOINT_VELOCITY, 11, 12):
+        if mode in (
+            utilities.MODE_ID_JOINT_VEL,
+            utilities.MODE_ID_JOINT_POS_VEL,
+            utilities.MODE_ID_JOINT_POS_VEL_TRQ,
+        ):
             velocity = float(velocity)
             msg.motor_velocity = velocity
             msg.gear_velocity = velocity
             msg.joint_velocity = velocity
-        if mode in (JOINT_TORQUE, 12):
+        if mode in (utilities.MODE_ID_JOINT_TRQ, utilities.MODE_ID_JOINT_POS_VEL_TRQ):
             torque = float(torque)
             msg.joint_torque = torque
         self.pub_command.publish(msg)
@@ -126,8 +134,8 @@ class AnydriveInterface:
         if len(t_meas_) < 5:
             return False
         if (
-            mean(t_meas_[-5:]) > param["tau_max"]
-            or mean(t_meas_[-5:]) < param["tau_min"]
+            np.mean(t_meas_[-5:]) > param["tau_max"]
+            or np.mean(t_meas_[-5:]) < param["tau_min"]
         ):
             print("tau_stop")
             return True
@@ -141,9 +149,7 @@ class AnydriveInterface:
 
     def stop_drive(self):
         rospy.loginfo("Stopping drive")
-        msg = msg_defs.Command()
-        # freezing the drive
-        msg.mode.mode = 1
+        msg = Command()
+        msg.mode.mode = utilities.MODE_ID_FREEZE
         self.pub_command.publish(msg)
         rospy.loginfo("Stopped drive")
-
