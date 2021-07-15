@@ -1,0 +1,104 @@
+###############################################################################
+# This is a robot setup file for EtherCAT                                     #
+###############################################################################
+
+# The anydrive::AnydriveManager class needs some information about your
+# ANYdrive setup. There are two ways to provide this information:
+# 1. Create a yaml file like this and load it using loadSetup(..).
+# 2. Create a anydrive_ethercat::setup::SetupEthercat instance and provide it  
+#    using loadSetup(..).
+# Either way, all information within the file or the struct is optional.
+# If you do not provide it, the default values are chosen, which are similar in
+# both cases.
+
+# This file contains information about the setup of an ANYdrive robot, such as
+# the amount of ANYdrives and where they are connected.
+
+# Each parameter is documented with name, description, type, unit, range and
+# default value.
+
+# Parameter                 anydrives
+# Description               A list of your ANYdrives.
+# Type                      List
+# Unit                      -
+# Range                     -
+# Default                   Single ANYdrive with default setup.
+anydrives:
+
+  # Parameter               name
+  # Description             Unique name of the ANYdrive.
+  # Type                    string
+  # Unit                    -
+  # Range                   -
+  # Default                 "anydrive"
+- name:                     "anydrive"
+
+  # Parameter               configuration_file
+  # Description             Path to ANYdrive configuration file. Can be 
+  #                         absolute (starting with "/" or "~") or relative to
+  #                         this file.
+  # Type                    string
+  # Unit                    -
+  # Range                   -
+  # Default                 No file is loaded and the default configuration is
+  #                         used.
+  configuration_file:       "configurations/default.yaml"
+
+  # Parameter               ethercat_bus
+  # Description             The EtherCAT bus where the ANYdrive is connected
+  #                         to.
+  # Type                    string
+  # Unit                    -
+  # Range                   -
+  # Default                 "eth0"
+  ethercat_bus:             "enxa0cec8c6291f"
+
+  # Parameter               ethercat_address
+  # Description             The EtherCAT slave address of the ANYdrive.
+  #                         The auto-increment method is used, so the slaves 
+  #                         are enumerated starting from 1, every time the bus
+  #                         is started.
+  # Type                    uint32
+  # Unit                    -
+  # Range                   {1, 2, ..., max(uint32)}
+  # Default                 1
+  ethercat_address:         1
+
+  # Parameter               ethercat_pdo_type
+  # Description             The PDO type the slave should use. More information
+  #                         can be found in the manual.
+  #                         "A" = 0x1600/0x1A00 (smallest PDO, without IMU)
+  #                         "B" = 0x1601/0x1A01 (smallest PDO, with IMU)
+  #                         "C" = 0x1602/0x1A02 (full PDO with support for 
+  #                                              Real Time Data Logging (RTDL))
+  #                         "D" = 0x1603/0x1A03 (DEPRECATED full PDO)
+  # Type                    string
+  # Unit                    -
+  # Range                   {"A", "B", "C", "D"}
+  # Default                 "A"
+  ethercat_pdo_type:        "A"
+
+# The joint position configuration manager allows to simultaneously command all
+# drives to a given joint position. All drives reach their goal joint position
+# within the same time by adapting their individual joint velocities. The drive
+# with the biggest distance to the goal joint position will move with the max
+# joint velocity. The different configurations are listed in the individual 
+# ANYdrive confiugrations.
+
+# Parameter                 joint_position_configuration_manager
+# Description               Setup of the Joint Position Configuration Manager.
+# Type                      Map
+# Unit                      -
+# Range                     -
+# Default                   Default setup.
+joint_position_configuration_manager:
+
+  # Parameter               max_joint_velocity
+  # Description             The maximal joint velocity used for the ANYdrive
+  #                         with the biggest position error.
+  # Type                    double
+  # Unit                    rad/s
+  # Range                   (0.0, .inf)
+  # Default                 1.0
+  max_joint_velocity:       1.0
+

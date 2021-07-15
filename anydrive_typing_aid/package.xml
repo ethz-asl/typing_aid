@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+
+<package format="2">
+
+  <name>anydrive_typing_aid</name>
+  <version>0.0.0</version>
+  <description>Typing aid code.</description>
+
+  <license>TODO</license>
+  <author email="fjulian@ethz.ch">Julian Foerster</author>
+  <maintainer email="fjulian@ethz.ch">Julian Foerster</maintainer>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>anydrive_ethercat_ros</depend>
+
+</package>
+
