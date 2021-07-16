@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 import csv
-
+import os
 
 MODE_ID_FREEZE = 1
 MODE_ID_JOINT_POS = 8
@@ -71,13 +71,59 @@ def quadratic_fct(t0, t_end, tau_0, tau_end, sampling_time):
     return x, y
 
 
-# to generate straight line. Duration in s.
-def const(tau, t0, t_end, sampling_time):
-    duration = t_end - t0
-    num_samples = round(float(duration) / float(sampling_time))
-    x = np.linspace(t0, t_end, num_samples, endpoint=True)
-    y = tau * np.ones(int(num_samples))
-    return x, y
+def polynomial5(t0, t2, y0, y2, steepness, sampling_time):
+    t1 = (t2 - t0) / 2.0 + t0
+    y1 = (y2 - y0) / 2.0 + y0
+    steepness = steepness * (y2 - y0) / (t2 - t0)
+    a = np.array(
+        [
+            [1, t0, t0 ** 2, t0 ** 3, t0 ** 4, t0 ** 5],
+            [1, t1, t1 ** 2, t1 ** 3, t1 ** 4, t1 ** 5],
+            [1, t2, t2 ** 2, t2 ** 3, t2 ** 4, t2 ** 5],
+            [0, 1, 2 * t0, 3 * t0 ** 2, 4 * t0 ** 3, 5 * t0 ** 4],
+            [0, 1, 2 * t1, 3 * t1 ** 2, 4 * t1 ** 3, 5 * t1 ** 4],
+            [0, 1, 2 * t2, 3 * t2 ** 2, 4 * t2 ** 3, 5 * t2 ** 4],
+        ]
+    )
+    b = np.array([y0, y1, y2, 0, steepness, 0])
+    p = np.linalg.solve(a, b)
+    f = (
+        lambda t: p[0]
+        + p[1] * t
+        + p[2] * t ** 2
+        + p[3] * t ** 3
+        + p[4] * t ** 4
+        + p[5] * t ** 5
+    )
+    f_d = (
+        lambda t: p[1]
+        + 2 * p[2] * t
+        + 3 * p[3] * t ** 2
+        + 4 * p[4] * t ** 3
+        + 5 * p[5] * t ** 4
+    )
+    f_dd = lambda t: 2 * p[2] + 6 * p[3] * t + 12 * p[4] * t ** 2 + 20 * p[5] * t ** 3
+    t = np.linspace(t0, t2, np.ceil((t2 - t0) / sampling_time))
+    y = map(f, t)
+    y_d = map(f_d, t)
+    y_dd = map(f_dd, t)
+    return t, y, y_d, y_dd
+
+
+def sigmoid(t0, t1, y0, y1, steepness, sampling_time):
+    t_center = t0 + (t1 - t0) / 2
+    f = lambda t: y0 + (y1 - y0) * (
+        1 - 1 / (1 + np.exp(-(t_center - t) / (steepness * (t1 - t0))))
+    )
+    t = np.arange(t0, t1, sampling_time)
+    y = map(f, t)
+    return t, y
+
+
+def const(value, t0, t_end, sampling_time):
+    t = np.arange(t0, t_end, sampling_time)
+    y = value * np.ones(len(t))
+    return t, y
 
 
 def afine(a, tau_0, t0, sampling_time):
@@ -157,12 +203,21 @@ def concat_data(
     data_pd.to_csv(path + name + name_file + ".csv")
 
 
-def save_param(param, controller, folder):
-    name = get_time_string() + controller + "_param.csv"
-    with open("/home/asl-admin/Desktop/" + folder + name, "w") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=list(param.keys()))
-        writer.writeheader()
-        writer.writerows([param])
+def create_dir(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+
+def save_parameters(controller):
+    name = controller.log_time_str + "_" + controller.__class__.__name__ + "_params.txt"
+    with open(os.path.join(controller.save_dir, name), "w") as f:
+        f.write(controller.parameters)
+
+
+def save_log(controller):
+    name = controller.log_time_str + "_" + controller.__class__.__name__ + "_log.csv"
+    df = pd.DataFrame(controller.log)
+    df.to_csv(os.path.join(controller.save_dir, name))
 
 
 def compute_traj(
@@ -229,7 +284,24 @@ def compute_traj(
     return x, y
 
 
-def compute_der(x, rate):
-    dx = np.diff(x) * rate
-    dx = np.append(dx, dx[-1])
-    return dx
+def compute_derivative(y, sampling_time):
+    y_ext = np.concatenate(([y[0], y[0]], y, [y[-1], y[-1]]))
+    dy = np.zeros(len(y))
+    # dy_simple = np.zeros(len(y))
+    for i in range(len(y)):
+        i_ext = i + 2
+        dy[i] = (
+            -y_ext[i_ext + 2]
+            + 8 * y_ext[i_ext + 1]
+            - 8 * y_ext[i_ext - 1]
+            + y_ext[i_ext - 2]
+        ) / (12 * sampling_time)
+        # dy_simple[i] = (y_ext[i_ext + 1] - y_ext[i_ext - 1]) / (2 * sampling_time)
+    return dy
+
+
+def find_idx_next_lower(array, value):
+    idx = (np.abs(array - value)).argmin()
+    if array[idx] > value:
+        idx -= 1
+    return idx

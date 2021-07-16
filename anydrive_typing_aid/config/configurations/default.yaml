@@ -259,7 +259,7 @@ imu:
   # Unit                            -
   # Range                           {true, false}
   # Default                         Value stored on device.
-  enable:                           true
+  enable:                           false
 
   # Parameter                       accelerometer_range
   # Description                     Sets the range of the IMU's accelerometer.
@@ -306,7 +306,7 @@ fan:
   # Unit                           -
   # Range                          {0, 1, 2}
   # Default                        Value stored on device.
-  mode:                            0
+  mode:                            1
 
   # Parameter                      intensity
   # Description                    Fan intensity.

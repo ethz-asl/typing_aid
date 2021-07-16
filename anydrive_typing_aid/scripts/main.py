@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import atexit
+import os
 import rospy
 
 # from torque_profile import cte_mov
@@ -13,12 +13,19 @@ import rospy
 
 from anydrive_typing_aid.utils.anydrive_interface import AnydriveInterface
 from anydrive_typing_aid.controllers.position_controller import PositionController
+import anydrive_typing_aid.utils.utilities as utilities
+
 
 if __name__ == "__main__":
     rospy.init_node("typing_aid")
 
+    save_dir = os.path.expanduser("~/Data/TypingAid")
+    utilities.create_dir(save_dir)
+
     drv_interface = AnydriveInterface()
     drv_interface.set_fsm_state(4)
+
+    rate_hz = 150.0
 
     controller = input(
         "Choose the controller method\n"
@@ -30,7 +37,7 @@ if __name__ == "__main__":
         "6 = friction controller\n"
     )
     if controller == 1:
-        ctrl = PositionController(drv_interface)
+        ctrl = PositionController(drv_interface, rate_hz, save_dir)
     # elif controller == 2:
     #     ctrl = cte_mov()
     # elif controller == 3:
@@ -43,17 +50,18 @@ if __name__ == "__main__":
     #     ctrl = Friction()
     else:
         rospy.logwarn("Invalid selection. Falling back to position controller.")
-        ctrl = PositionController(drv_interface)
+        ctrl = PositionController(drv_interface, rate_hz, save_dir)
 
-    rate = rospy.Rate(20)
+    rate = rospy.Rate(rate_hz)
     rospy.loginfo("Starting loop ")
     try:
         while not rospy.is_shutdown():
-            ctrl.step()
+            res = ctrl.step()
+            if not res:
+                break
             rate.sleep()
     except rospy.ROSInterruptException:
         rospy.loginfo("Ran interrupt handler")
     finally:
         rospy.loginfo("Shutting down")
         ctrl.stop()
-        drv_interface.stop_drive()

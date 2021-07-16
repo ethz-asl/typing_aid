@@ -11,9 +11,9 @@ import anydrive_typing_aid.utils.utilities as utilities
 
 class AnydriveInterface:
     def __init__(self):
-        self.prefix = "/anydrive"
+        self.prefix = "anydrive"
         self.pub_command = rospy.Publisher(
-            self.prefix + "/anydrive/command", Command, queue_size=10
+            self.prefix + "/anydrive/command", Command, queue_size=10, latch=True
         )
 
         srv_name = "anydrive/set_goal_state"
@@ -32,17 +32,14 @@ class AnydriveInterface:
         state_string = state_translator(state)
         rospy.loginfo("FSM state changed to {}".format(state_string))
 
-    def listener(self):
+    def get_state(self):
         msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", Reading)
-        self.joint_position = msg.state.joint_position
-        self.joint_velocity = msg.state.joint_velocity
-        self.joint_torque = msg.state.joint_torque
-        self.motor_current = msg.state.current
+        msg = Reading(msg)
         return (
-            self.joint_torque,
-            self.joint_velocity,
-            self.joint_position,
-            self.motor_current,
+            msg.state.joint_position,
+            msg.state.joint_velocity,
+            msg.state.joint_torque,
+            msg.state.current,
         )
 
     def callback(self, msg):
@@ -84,47 +81,30 @@ class AnydriveInterface:
             self.pub_command.publish(msg)
         return param
 
-    # to change pid gains of motor
-    def pid(self, mode, param):
+    def move(self, mode, position=None, velocity=None, torque=None, params=None):
         msg = Command()
-        msg.mode.mode = np.uint16(mode)
-        p = param["p"]
-        msg.pid_gains_p = float(p)
-        i = param["i"]
-        msg.pid_gains_i = float(i)
-        d = param["d"]
-        msg.pid_gains_d = float(d)
-        self.pub_command.publish(msg)
-
-    def set_PID(self, param):
-        param["p_gain"] = input("p_gain")
-        param["i_gain"] = input("i_gain")
-        param["d_gain"] = input("d_gain")
-        # initialization of p_error
-        param["p_error"] = input("p_error")
-        return param
-
-    def move(self, mode, position, velocity, torque):
-        msg = Command()
-        msg.mode.mode = np.uint16(mode)
+        msg.mode.mode = mode
         if mode in (
             utilities.MODE_ID_JOINT_POS,
             utilities.MODE_ID_JOINT_POS_VEL,
             utilities.MODE_ID_JOINT_POS_VEL_TRQ,
         ):
+            assert position is not None
             msg.joint_position = position
         if mode in (
             utilities.MODE_ID_JOINT_VEL,
             utilities.MODE_ID_JOINT_POS_VEL,
             utilities.MODE_ID_JOINT_POS_VEL_TRQ,
         ):
-            velocity = float(velocity)
-            msg.motor_velocity = velocity
-            msg.gear_velocity = velocity
+            assert velocity is not None
             msg.joint_velocity = velocity
         if mode in (utilities.MODE_ID_JOINT_TRQ, utilities.MODE_ID_JOINT_POS_VEL_TRQ):
-            torque = float(torque)
+            assert torque is not None
             msg.joint_torque = torque
+        if params is not None and "pid_p" in params:
+            msg.pid_gains_p = params["pid_p"]
+            msg.pid_gains_i = params["pid_i"]
+            msg.pid_gains_d = params["pid_d"]
         self.pub_command.publish(msg)
 
     def lim_check(self, param, t_meas_, p_meas):
