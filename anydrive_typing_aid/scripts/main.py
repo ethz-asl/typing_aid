@@ -13,6 +13,7 @@ import rospy
 
 from anydrive_typing_aid.utils.anydrive_interface import AnydriveInterface
 from anydrive_typing_aid.controllers.position_controller import PositionController
+from anydrive_typing_aid.controllers.impedance_controller import ImpedanceController
 import anydrive_typing_aid.utils.utilities as utilities
 
 
@@ -42,8 +43,8 @@ if __name__ == "__main__":
     #     ctrl = cte_mov()
     # elif controller == 3:
     #     ctrl = pid()
-    # elif controller == 4:
-    #     ctrl = Impedance_pos()
+    elif controller == 4:
+        ctrl = ImpedanceController(drv_interface, rate_hz, save_dir)
     # elif controller == 5:
     #     ctrl = impedance_vel()
     # elif controller == 6:
