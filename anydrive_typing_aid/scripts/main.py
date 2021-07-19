@@ -15,6 +15,7 @@ from anydrive_typing_aid.utils.anydrive_interface import AnydriveInterface
 from anydrive_typing_aid.controllers.position_controller import PositionController
 from anydrive_typing_aid.controllers.torque_controller import TorqueController
 from anydrive_typing_aid.controllers.impedance_controller import ImpedanceController
+from anydrive_typing_aid.controllers.friction_controller import FrictionController
 import anydrive_typing_aid.utils.utilities as utilities
 
 
@@ -29,30 +30,10 @@ if __name__ == "__main__":
 
     rate_hz = 150.0
 
-    controller = input(
-        "Choose the controller method\n"
-        "1 = position controller\n"
-        "2 = torque controller\n"
-        "3 = pid controller\n"
-        "4 = impedance on pos controller\n"
-        "5 = impedance on vel controller\n"
-        "6 = friction controller\n"
-    )
-    if controller == 1:
-        ctrl = PositionController(drv_interface, rate_hz, save_dir)
-    elif controller == 2:
-        ctrl = TorqueController(drv_interface, rate_hz, save_dir)
-    # elif controller == 3:
-    #     ctrl = pid()
-    elif controller == 4:
-        ctrl = ImpedanceController(drv_interface, rate_hz, save_dir)
-    # elif controller == 5:
-    #     ctrl = impedance_vel()
-    # elif controller == 6:
-    #     ctrl = Friction()
-    else:
-        rospy.logwarn("Invalid selection. Falling back to position controller.")
-        ctrl = PositionController(drv_interface, rate_hz, save_dir)
+    ctrl = PositionController(drv_interface, rate_hz, save_dir)
+    # ctrl = TorqueController(drv_interface, rate_hz, save_dir)
+    # ctrl = ImpedanceController(drv_interface, rate_hz, save_dir)
+    # ctrl = FrictionController(drv_interface, rate_hz, save_dir)
 
     rate = rospy.Rate(rate_hz)
     rospy.loginfo("Starting loop ")
