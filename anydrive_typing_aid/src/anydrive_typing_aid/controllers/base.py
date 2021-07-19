@@ -1,3 +1,4 @@
+import numpy as np
 import rospy
 from std_msgs.msg import Empty
 import anydrive_typing_aid.utils.utilities as utilities
@@ -13,13 +14,6 @@ class BaseController:
         self.rate_hz = parameters["rate_hz"]
         self.sampling_time = 1.0 / self.rate_hz
 
-        self.traj_t = None
-        self.traj_p = None
-        self.traj_v = None
-        self.traj_tau = None
-        self.lift_start_time = 0.0
-        self.lift_running = False
-
         self.controller_start_time = rospy.get_time()
 
         log_strings = [
@@ -27,77 +21,22 @@ class BaseController:
             "p_cmd",
             "v_cmd",
             "tau_cmd",
+            "lift_running",
             "p_meas",
             "v_meas",
             "tau_meas",
             "i_meas",
         ]
         self.log = {log_string: list() for log_string in log_strings}
-
         rospy.Subscriber("lift_arm", Empty, self.lifting_callback)
 
     def lifting_callback(self, msg):
-        if self.lift_running:
-            return
-        rospy.loginfo("Got triggered")
-        self.compute_trajectory()
-        self.lift_start_time = rospy.get_time()
-        self.lift_running = True
+        raise NotImplementedError
 
     def stop(self):
+        self.drv_interface.stop_drive()
         utilities.save_parameters(self)
         utilities.save_log(self)
-        self.drv_interface.stop_drive()
-
-    def step(self):
-        state = self.drv_interface.get_state()
-        res = self.limit_checking(state)
-        if not res:
-            return False
-        current_time = rospy.get_time()
-        time_since_lift_start = current_time - self.lift_start_time
-        p_cmd = None
-        v_cmd = None
-        tau_cmd = None
-        if time_since_lift_start < self.traj_t[-1]:
-            # Interpolate to get command
-            idx_next_lower = utilities.find_idx_next_lower(
-                self.traj_t, time_since_lift_start
-            )
-            interpolation_factor = (
-                time_since_lift_start - self.traj_t[idx_next_lower]
-            ) / (self.traj_t[idx_next_lower + 1] - self.traj_t[idx_next_lower])
-            if self.traj_p is not None:
-                p_cmd = self.traj_p[idx_next_lower] + interpolation_factor * (
-                    self.traj_p[idx_next_lower + 1] - self.traj_p[idx_next_lower]
-                )
-            if self.traj_v is not None:
-                v_cmd = self.traj_v[idx_next_lower] + interpolation_factor * (
-                    self.traj_v[idx_next_lower + 1] - self.traj_v[idx_next_lower]
-                )
-            if self.traj_tau is not None:
-                tau_cmd = self.traj_tau[idx_next_lower] + interpolation_factor * (
-                    self.traj_tau[idx_next_lower + 1] - self.traj_tau[idx_next_lower]
-                )
-            self.drv_interface.move(
-                self.parameters["lifting_mode"],
-                position=p_cmd,
-                velocity=v_cmd,
-                torque=tau_cmd,
-                params=self.parameters,
-            )
-        else:
-            tau_cmd = self.parameters["idle_torque"]
-            self.drv_interface.move(utilities.MODE_ID_JOINT_TRQ, torque=tau_cmd)
-        self.log["t"].append(current_time - self.controller_start_time)
-        self.log["p_cmd"] = p_cmd
-        self.log["v_cmd"] = v_cmd
-        self.log["tau_cmd"] = tau_cmd
-        self.log["p_meas"] = state[0]
-        self.log["v_meas"] = state[1]
-        self.log["tau_meas"] = state[2]
-        self.log["i_meas"] = state[3]
-        return True
 
     def limit_checking(self, state):
         if (
@@ -108,5 +47,59 @@ class BaseController:
             return False
         return True
 
-    def compute_trajectory(self):
-        raise NotImplementedError()
+    def compute_trajectory(
+        self,
+        lower_y,
+        upper_y,
+        duration_up,
+        steepness_up,
+        duration_down,
+        steepness_down,
+        duration_const,
+    ):
+        t_ramp_up, y_ramp_up = utilities.sigmoid(
+            0.0, duration_up, lower_y, upper_y, steepness_up, self.sampling_time,
+        )
+        t_const_start = t_ramp_up[-1] + self.sampling_time
+        t_const, y_const = utilities.const(
+            upper_y, t_const_start, t_const_start + duration_const, self.sampling_time,
+        )
+        if len(t_const) > 0:
+            t_ramp_down_start = t_const[-1] + self.sampling_time
+        else:
+            t_ramp_down_start = t_const_start
+        t_ramp_down, y_ramp_down = utilities.sigmoid(
+            t_ramp_down_start,
+            t_ramp_down_start + duration_down,
+            upper_y,
+            lower_y,
+            steepness_down,
+            self.sampling_time,
+        )
+        t = np.concatenate((t_ramp_up, t_const, t_ramp_down))
+        y = np.concatenate((y_ramp_up, y_const, y_ramp_down))
+        dy = utilities.compute_derivative(y, self.sampling_time)
+        return t, y, dy
+
+    def step(self):
+        state = self.drv_interface.get_state()
+        res = self.limit_checking(state)
+        if not res:
+            return False
+        current_time = rospy.get_time()
+
+        p_cmd, v_cmd, tau_cmd, lift_running = self.individual_step(current_time, state)
+
+        self.log["t"].append(current_time - self.controller_start_time)
+        self.log["p_cmd"].append(p_cmd)
+        self.log["v_cmd"].append(v_cmd)
+        self.log["tau_cmd"].append(tau_cmd)
+        self.log["lift_running"].append(lift_running)
+        self.log["p_meas"].append(state[0])
+        self.log["v_meas"].append(state[1])
+        self.log["tau_meas"].append(state[2])
+        self.log["i_meas"].append(state[3])
+        return True
+
+    def individual_step(self, current_time, state):
+        raise NotImplementedError
