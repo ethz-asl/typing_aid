@@ -13,6 +13,7 @@ import rospy
 
 from anydrive_typing_aid.utils.anydrive_interface import AnydriveInterface
 from anydrive_typing_aid.controllers.position_controller import PositionController
+from anydrive_typing_aid.controllers.torque_controller import TorqueController
 from anydrive_typing_aid.controllers.impedance_controller import ImpedanceController
 import anydrive_typing_aid.utils.utilities as utilities
 
@@ -39,8 +40,8 @@ if __name__ == "__main__":
     )
     if controller == 1:
         ctrl = PositionController(drv_interface, rate_hz, save_dir)
-    # elif controller == 2:
-    #     ctrl = cte_mov()
+    elif controller == 2:
+        ctrl = TorqueController(drv_interface, rate_hz, save_dir)
     # elif controller == 3:
     #     ctrl = pid()
     elif controller == 4:
