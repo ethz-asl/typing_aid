@@ -2,7 +2,7 @@ import rospy
 import numpy as np
 
 import anydrive_typing_aid.utils.utilities as utilities
-from anydrive_typing_aid.controllers.base import BaseController
+from anydrive_typing_aid.controllers.base_controller import BaseController
 
 
 class ImpedanceController(BaseController):

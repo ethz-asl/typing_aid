@@ -1,5 +1,5 @@
 import rospy
-from anydrive_typing_aid.controllers.base import BaseController
+from anydrive_typing_aid.controllers.base_controller import BaseController
 import anydrive_typing_aid.utils.utilities as utilities
 
 

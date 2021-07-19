@@ -1,5 +1,6 @@
-#!/usr/bin/env python
-# coding=utf-8
+# This is a bang band position controller, changing the position
+# setpoint abruptly when the trigger is received. Not worth
+# further pursuing.
 
 import rospy
 from std_msgs.msg import String, Float64, Header, Empty
@@ -11,7 +12,7 @@ import numpy as np
 import fsmstate as fsm
 import utils
 
-global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE, JOINT_POSITION_VELOCITY
+# global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE, JOINT_POSITION_VELOCITY
 JOINT_POSITION = 8
 JOINT_VELOCITY = 9
 JOINT_TORQUE = 10
@@ -32,7 +33,7 @@ class Basic_controller:
             self.v_cmd_,
             self.p_cmd_,
         ) = ([], [], [], [], [], [], [], [])
-        self.u = utils.utils()
+        self.utils = utils.utils()
         self.param = {
             "x_0_lim": -13.305917739868164,
             "x_end_lim": -1.3176895380020142,
@@ -44,9 +45,9 @@ class Basic_controller:
             "rate": 1,
         }
 
-        # self.param = self.u.set_pos(self.param)
+        # self.param = self.utils.set_pos(self.param)
         # print(self.param)
-        self.u.save_param(self.param, "pos_control", "pos_control/")
+        self.utils.save_param(self.param, "pos_control", "pos_control/")
         self.cmd_store = 0.0
 
         rospy.Subscriber("lift_arm", Empty, self.callback)
@@ -86,35 +87,40 @@ class Basic_controller:
                 "current",
             ],
         )
-        name = self.u.get_time()
+        name = self.utils.get_time()
         path = "/home/asl-admin/Desktop/basic/"
         data_pd.to_csv(path + name + "_basic_pos_control.csv")
         # # plotting the desired path
         # x = np.arange(0, len(self.t_meas_), 1)
-        # self.u.plot(x, self.y , "desired_traj.png")
-        # self.u.plot(x, self.t_meas_ , "torque.png")
-        self.u.stop_drive()
+        # self.utils.plot(x, self.y , "desired_traj.png")
+        # self.utils.plot(x, self.t_meas_ , "torque.png")
+        self.utils.stop_drive()
 
     def run(self):
         rospy.loginfo("starting movement")
         try:
 
             # change pid gains
-            # self.u.pid(JOINT_POSITION, self.param)
+            # self.utils.pid(JOINT_POSITION, self.param)
             while not rospy.is_shutdown():
                 if self.steps_left > 0:
-                    self.u.move(JOINT_POSITION, self.p_cmd, self.v_cmd, self.t_cmd)
+                    self.utils.move(JOINT_POSITION, self.p_cmd, self.v_cmd, self.t_cmd)
                     self.cmd_store = self.p_cmd
                     self.t_cmd = 0.0
                     self.steps_left -= 1
                     self.p_cmd = self.param["x_0"]
                 else:
                     self.t_cmd = self.param["tau_0"]
-                    self.u.move(JOINT_TORQUE, self.p_cmd, self.v_cmd, self.t_cmd)
+                    self.utils.move(JOINT_TORQUE, self.p_cmd, self.v_cmd, self.t_cmd)
                     self.p_cmd, self.v_cmd, self.cmd_store = 0.0, 0.0, 0.0
 
-                t_meas, v_meas, p_meas, i_meas = self.u.listener()
-                self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_ = self.u.store(
+                t_meas, v_meas, p_meas, i_meas = self.utils.listener()
+                (
+                    self.t_meas_,
+                    self.v_meas_,
+                    self.p_meas_,
+                    self.i_meas_,
+                ) = self.utils.store(
                     t_meas,
                     v_meas,
                     p_meas,
@@ -124,7 +130,7 @@ class Basic_controller:
                     self.p_meas_,
                     self.i_meas_,
                 )
-                self.t_cmd_, self.v_cmd_, self.p_cmd_ = self.u.store_pid(
+                self.t_cmd_, self.v_cmd_, self.p_cmd_ = self.utils.store_pid(
                     self.t_cmd,
                     self.v_cmd,
                     self.p_cmd,
@@ -132,7 +138,7 @@ class Basic_controller:
                     self.v_cmd_,
                     self.p_cmd_,
                 )
-                if self.u.lim_check(self.param, self.t_meas_, p_meas):
+                if self.utils.lim_check(self.param, self.t_meas_, p_meas):
                     raise rospy.ROSInterruptException
                 self.rate.sleep()
 
