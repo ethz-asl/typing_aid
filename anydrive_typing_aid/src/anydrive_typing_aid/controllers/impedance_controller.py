@@ -16,6 +16,8 @@ class ImpedanceController(BaseController):
             "duration_constant": 0.1,
             "duration_ramp_down": 0.6,
             "steepness_ramp_down": 0.05,
+            "use_depression": True,
+            "distance_depression": -0.2,
             # "pid_p": 2,
             # "pid_i": 0.078,
             # "pid_d": 0.163,
@@ -51,6 +53,8 @@ class ImpedanceController(BaseController):
             duration_down=self.parameters["duration_ramp_down"],
             steepness_down=self.parameters["steepness_ramp_down"],
             duration_const=self.parameters["duration_constant"],
+            use_depression=self.parameters["use_depression"],
+            depression_y=p_meas + self.parameters["distance_depression"],
         )
 
     def individual_step(self, current_time, state):

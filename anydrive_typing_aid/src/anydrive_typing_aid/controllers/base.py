@@ -56,7 +56,12 @@ class BaseController:
         duration_down,
         steepness_down,
         duration_const,
+        use_depression=False,
+        depression_y=None,
     ):
+        if use_depression:
+            assert depression_y is not None
+
         t_ramp_up, y_ramp_up = utilities.sigmoid(
             0.0, duration_up, lower_y, upper_y, steepness_up, self.sampling_time,
         )
@@ -68,14 +73,36 @@ class BaseController:
             t_ramp_down_start = t_const[-1] + self.sampling_time
         else:
             t_ramp_down_start = t_const_start
-        t_ramp_down, y_ramp_down = utilities.sigmoid(
-            t_ramp_down_start,
-            t_ramp_down_start + duration_down,
-            upper_y,
-            lower_y,
-            steepness_down,
-            self.sampling_time,
-        )
+
+        if not use_depression:
+            t_ramp_down, y_ramp_down = utilities.sigmoid(
+                t_ramp_down_start,
+                t_ramp_down_start + duration_down,
+                upper_y,
+                lower_y,
+                steepness_down,
+                self.sampling_time,
+            )
+        else:
+            t_ramp_down_1, y_ramp_down_1 = utilities.sigmoid(
+                t_ramp_down_start,
+                t_ramp_down_start + duration_down / 2.0,
+                upper_y,
+                depression_y,
+                steepness_down,
+                self.sampling_time,
+            )
+            t_ramp_down_2_start = t_ramp_down_1[-1] + self.sampling_time
+            t_ramp_down_2, y_ramp_down_2 = utilities.sigmoid(
+                t_ramp_down_2_start,
+                t_ramp_down_2_start + duration_down / 2.0,
+                depression_y,
+                lower_y,
+                steepness_down,
+                self.sampling_time,
+            )
+            t_ramp_down = np.concatenate((t_ramp_down_1, t_ramp_down_2))
+            y_ramp_down = np.concatenate((y_ramp_down_1, y_ramp_down_2))
         t = np.concatenate((t_ramp_up, t_const, t_ramp_down))
         y = np.concatenate((y_ramp_up, y_const, y_ramp_down))
         dy = utilities.compute_derivative(y, self.sampling_time)

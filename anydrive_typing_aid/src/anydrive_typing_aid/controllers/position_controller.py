@@ -1,4 +1,3 @@
-import numpy as np
 import rospy
 from anydrive_typing_aid.controllers.base import BaseController
 import anydrive_typing_aid.utils.utilities as utilities
@@ -31,6 +30,7 @@ class PositionController(BaseController):
         self.lift_running = False
 
         BaseController.__init__(self, drv_interface, parameters, save_dir)
+        rospy.loginfo("Controller initialized")
 
     def lifting_callback(self, msg):
         if self.lift_running:

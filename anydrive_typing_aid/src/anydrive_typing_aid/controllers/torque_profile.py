@@ -1,121 +1,74 @@
-#!/usr/bin/env python
-# coding=utf-8
-
 import rospy
-from std_msgs.msg import String, Float64, Header, Empty
-import anydrive_msgs.msg as msg_defs
-from math import pi
-import numpy as np
-import pandas as pd
-import time
 
-import fsmstate as fsm
-import utils
-
-global JOINT_POSITION, JOINT_VELOCITY, JOINT_TORQUE
-JOINT_POSITION = 8
-JOINT_VELOCITY = 9
-JOINT_TORQUE = 10
+from anydrive_typing_aid.controllers.base import BaseController
+import anydrive_typing_aid.utils.utilities as utilities
 
 
-class cte_mov:
-    def __init__(self):
-        self.p_des, self.v_des = 0, 0
-        self.u = utils.utils()
-        self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_, self.t_cmd_ = (
-            [],
-            [],
-            [],
-            [],
-            [],
-        )
-
-        self.param = {
-            "transition_up": 0.5,
-            "duration_constant_up": 0.0,
-            "transition_down": 0.5,
-            "rate": 80,  # in hz
-            "tau_0": 0.5,
-            "tau_low": 0.0,
-            "tau_end": 1.5,
-            "tau_min": -1.0,
-            "tau_max": 3.0,
-            "x_0_lim": -3.8042964935302734,
-            "x_end_lim": 4.61220121383667,
+class TorqueController(BaseController):
+    def __init__(self, drv_interface, rate_hz, save_dir):
+        parameters = {
+            "idle_torque": 0.5,
+            "duration_ramp_up": 0.6,
+            "distance_ramp_up": 0.5,
+            "steepness_ramp_up": 0.05,
+            "duration_constant": 0.1,
+            "duration_ramp_down": 0.6,
+            "steepness_ramp_down": 0.05,
+            "use_depression": True,
+            "distance_depression": -0.2,
+            # "pid_p": 2,
+            # "pid_i": 0.078,
+            # "pid_d": 0.163,
+            "rate_hz": rate_hz,
+            "tau_lower_limit": -3.0,
+            "tau_upper_limit": 3.0,
         }
-        self.u.save_param(self.param, "torque_profile", "torque_profile/")
-        self.sampling_time = 1.0 / self.param["rate"]
-        rate_hz = self.param["rate"]
-        self.rate = rospy.Rate(rate_hz)
-        rospy.loginfo("computing trajectory")
-        self.other_traj = True
-        self.x, self.y = self.u.compute_traj(
-            self.param,
-            "tau_0",
-            -99,
-            "tau_end",
-            "tau_low",
-            self.other_traj,
-            self.sampling_time,
+        BaseController.__init__(self, drv_interface, parameters, save_dir)
+
+        self.traj_t, self.traj_tau, _ = BaseController.compute_trajectory(
+            self,
+            lower_y=self.parameters["idle_torque"],
+            upper_y=self.parameters["idle_torque"]
+            + self.parameters["distance_ramp_up"],
+            duration_up=self.parameters["duration_ramp_up"],
+            steepness_up=self.parameters["steepness_ramp_up"],
+            duration_down=self.parameters["duration_ramp_down"],
+            steepness_down=self.parameters["steepness_ramp_down"],
+            duration_const=self.parameters["duration_constant"],
+            use_depression=self.parameters["use_depression"],
+            depression_y=self.parameters["idle_torque"]
+            + self.parameters["distance_depression"],
         )
-        self.u.plot(self.x, self.y, "desired_traj.png")
-        self.total_steps = len(self.y)
 
-        rospy.Subscriber("lift_arm", Empty, self.callback)
-        rospy.loginfo("Controller init finished")
+        self.lift_start_time = 0.0
+        self.lift_running = False
 
-        self.steps_left = 0
-        # choose the torque profile
+        rospy.loginfo("Controller initialized")
 
-    def callback(self, msg):
+    def lifting_callback(self, msg):
+        if self.lift_running:
+            return
         rospy.loginfo("Got triggered")
-        # if self.steps_left > 0:
-        #     return
-        self.steps_left = self.total_steps
+        self.lift_start_time = rospy.get_time()
+        self.lift_running = True
 
-    def stop(self):
-        rospy.loginfo("Exit handler")
-
-        # collecting the data
-        self.u.concat_data(
-            self.t_cmd_,
-            "commanded torque",
-            self.t_meas_,
-            self.v_meas_,
-            self.p_meas_,
-            self.i_meas_,
-            "_cte_mov",
-            "torque_profile/",
-        )
-
-        self.u.stop_drive()
-
-    def run(self):
-        rospy.loginfo("starting movement")
-        try:
-            while not rospy.is_shutdown():
-                if self.steps_left > 0:
-                    # Moving up
-                    t_cmd = self.y[self.total_steps - self.steps_left]
-                    self.steps_left -= 1
-                else:
-                    t_cmd = self.param["tau_0"]
-                self.u.move(JOINT_TORQUE, self.p_des, self.v_des, t_cmd)
-                self.t_cmd_ = self.u.store_one(t_cmd, self.t_cmd_)
-                t_meas, v_meas, p_meas, i_meas = self.u.listener()
-                self.t_meas_, self.v_meas_, self.p_meas_, self.i_meas_ = self.u.store(
-                    t_meas,
-                    v_meas,
-                    p_meas,
-                    i_meas,
-                    self.t_meas_,
-                    self.v_meas_,
-                    self.p_meas_,
-                    self.i_meas_,
-                )
-                if self.u.lim_check(self.param, self.t_meas_, p_meas):
-                    raise rospy.ROSInterruptException
-                self.rate.sleep()
-
-        except rospy.ROSInterruptException:
-            self.stop()
+    def individual_step(self, current_time, state):
+        time_since_lift_start = current_time - self.lift_start_time
+        p_cmd = None
+        v_cmd = None
+        if time_since_lift_start < self.traj_t[-1]:
+            # Interpolate to get command
+            idx_next_lower = utilities.find_idx_next_lower(
+                self.traj_t, time_since_lift_start
+            )
+            interpolation_factor = (
+                time_since_lift_start - self.traj_t[idx_next_lower]
+            ) / (self.traj_t[idx_next_lower + 1] - self.traj_t[idx_next_lower])
+            tau_cmd = self.traj_tau[idx_next_lower] + interpolation_factor * (
+                self.traj_tau[idx_next_lower + 1] - self.traj_tau[idx_next_lower]
+            )
+        else:
+            tau_cmd = self.parameters["idle_torque"]
+            self.lift_running = False
+        self.drv_interface.move(utilities.MODE_ID_JOINT_TRQ, torque=tau_cmd)
+        return p_cmd, v_cmd, tau_cmd, self.lift_running
