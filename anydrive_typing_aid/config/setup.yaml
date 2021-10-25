@@ -51,7 +51,7 @@ anydrives:
   # Unit                    -
   # Range                   -
   # Default                 "eth0"
-  ethercat_bus:             "enxa0cec8c6291f"
+  ethercat_bus:             "enx000ec6a06148"
 
   # Parameter               ethercat_address
   # Description             The EtherCAT slave address of the ANYdrive.

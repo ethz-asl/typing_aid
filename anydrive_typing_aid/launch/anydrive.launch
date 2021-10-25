@@ -9,5 +9,5 @@
         <arg name="setup_file" value="$(find anydrive_typing_aid)/config/setup.yaml"/>
     </include>
 
-<!--    <node type="main.py" pkg="anydrive_typing_aid" name="typing_controller" required="true" output="screen"/>-->
+   <node type="main.py" pkg="anydrive_typing_aid" name="typing_controller" required="true" output="screen"/>
 </launch>

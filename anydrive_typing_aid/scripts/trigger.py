@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import rospy
 from std_msgs.msg import String
 
@@ -11,6 +12,8 @@ def talker():
         inp = raw_input("Enter to lift.")
         msg.data = inp
         pub.publish(msg)
+        if inp == "q":
+            break
 
 
 if __name__ == "__main__":

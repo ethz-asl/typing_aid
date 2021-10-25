@@ -67,6 +67,7 @@ class BaseController:
         duration_const,
         use_depression=False,
         depression_y=None,
+        depression_proportion=0.5,
     ):
         if use_depression:
             assert depression_y is not None
@@ -93,9 +94,10 @@ class BaseController:
                 self.sampling_time,
             )
         else:
+            assert depression_proportion >= 0.0 and depression_proportion <= 1.0
             t_ramp_down_1, y_ramp_down_1 = utilities.sigmoid(
                 t_ramp_down_start,
-                t_ramp_down_start + duration_down / 2.0,
+                t_ramp_down_start + depression_proportion * duration_down,
                 upper_y,
                 depression_y,
                 steepness_down,
@@ -104,7 +106,7 @@ class BaseController:
             t_ramp_down_2_start = t_ramp_down_1[-1] + self.sampling_time
             t_ramp_down_2, y_ramp_down_2 = utilities.sigmoid(
                 t_ramp_down_2_start,
-                t_ramp_down_2_start + duration_down / 2.0,
+                t_ramp_down_2_start + (1 - depression_proportion) * duration_down,
                 depression_y,
                 lower_y,
                 steepness_down,

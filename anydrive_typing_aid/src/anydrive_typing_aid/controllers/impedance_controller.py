@@ -10,10 +10,10 @@ class ImpedanceController(BaseController):
     def __init__(self, drv_interface, rate_hz, save_dir):
         parameters = {
             "impedance_gain": 0.8,
-            "idle_torque": 0.6,
+            "idle_torque": 0.7,
             "minimum_torque": 0.0,
             "duration_ramp_up": 0.8,
-            "distance_ramp_up": 4.5,
+            "distance_ramp_up": 4.8,
             "steepness_ramp_up": 0.09,
             "duration_constant": 0.0,
             "duration_ramp_down": 0.4,
