@@ -1,4 +1,5 @@
 import rospy
+import matplotlib.pyplot as plt
 import numpy as np
 
 import anydrive_typing_aid.utils.utilities as utilities
@@ -8,22 +9,23 @@ from anydrive_typing_aid.controllers.base_controller import BaseController
 class ImpedanceController(BaseController):
     def __init__(self, drv_interface, rate_hz, save_dir):
         parameters = {
-            "impedance_gain": 0.7,
-            "idle_torque": 0.5,
-            "duration_ramp_up": 0.6,
-            "distance_ramp_up": 2.0,
-            "steepness_ramp_up": 0.05,
-            "duration_constant": 0.1,
-            "duration_ramp_down": 0.6,
-            "steepness_ramp_down": 0.05,
+            "impedance_gain": 0.8,
+            "idle_torque": 0.6,
+            "minimum_torque": 0.0,
+            "duration_ramp_up": 0.8,
+            "distance_ramp_up": 4.5,
+            "steepness_ramp_up": 0.09,
+            "duration_constant": 0.0,
+            "duration_ramp_down": 0.4,
+            "steepness_ramp_down": 0.09,
             "use_depression": True,
-            "distance_depression": -0.2,
+            "distance_depression": -0.4,
             # "pid_p": 2,
             # "pid_i": 0.078,
             # "pid_d": 0.163,
             "rate_hz": rate_hz,
-            "tau_lower_limit": -3.0,
-            "tau_upper_limit": 3.0,
+            "tau_lower_limit": -2.0,
+            "tau_upper_limit": 4.0,
         }
 
         self.traj_t = None
@@ -34,16 +36,22 @@ class ImpedanceController(BaseController):
 
         BaseController.__init__(self, drv_interface, parameters, save_dir)
 
+    def plot_trajectory(self):
+        self.compute_position_trajectory()
+        plt.plot(self.traj_t, self.traj_p)
+        plt.legend(["pos"])
+        plt.show()
+
     def lifting_callback(self, msg):
-        if self.lift_running:
-            return
+        # if self.lift_running:
+        #     return
         rospy.loginfo("Got triggered")
         self.compute_position_trajectory()
         self.lift_start_time = rospy.get_time()
         self.lift_running = True
 
     def compute_position_trajectory(self):
-        p_meas, _, _, _ = self.drv_interface.listener()
+        p_meas, _, _, _ = self.drv_interface.get_state()
         self.traj_t, self.traj_p, _ = BaseController.compute_trajectory(
             self,
             lower_y=p_meas,
@@ -72,8 +80,10 @@ class ImpedanceController(BaseController):
             p_desired = self.traj_p[idx_next_lower] + interpolation_factor * (
                 self.traj_p[idx_next_lower + 1] - self.traj_p[idx_next_lower]
             )
-            tau_cmd = self.parameters["impedance_gain"] * (p_desired - state[0])
-            tau_cmd = np.max((tau_cmd, self.parameters["idle_torque"]))
+            tau_cmd = self.parameters["idle_torque"] + self.parameters[
+                "impedance_gain"
+            ] * (p_desired - state[0])
+            tau_cmd = np.max((tau_cmd, self.parameters["minimum_torque"]))
         else:
             tau_cmd = self.parameters["idle_torque"]
             self.lift_running = False

@@ -1,10 +1,5 @@
 import rospy
-from std_msgs.msg import String, Float64, Header, Empty
-import anydrive_msgs.msg as msg_defs
-from math import pi
 import numpy as np
-import pandas as pd
-from statistics import mean
 
 import anydrive_typing_aid.utils.utilities as utilities
 from anydrive_typing_aid.controllers.base_controller import BaseController

@@ -7,12 +7,12 @@ class PositionController(BaseController):
     def __init__(self, drv_interface, rate_hz, save_dir):
         parameters = {
             "idle_torque": 0.5,
-            "lifting_mode": utilities.MODE_ID_JOINT_POS_VEL,
-            "duration_ramp_up": 0.6,
-            "distance_ramp_up": 2.0,
+            "lifting_mode": utilities.MODE_ID_JOINT_POS,
+            "duration_ramp_up": 1.5,
+            "distance_ramp_up": 0.6,
             "steepness_ramp_up": 0.05,
-            "duration_constant": 0.1,
-            "duration_ramp_down": 0.6,
+            "duration_constant": 1.0,
+            "duration_ramp_down": 1.5,
             "steepness_ramp_down": 0.05,
             # "pid_p": 2,
             # "pid_i": 0.078,
@@ -41,7 +41,7 @@ class PositionController(BaseController):
         self.lift_running = True
 
     def compute_position_trajectory(self):
-        p_meas, _, _, _ = self.drv_interface.listener()
+        p_meas, _, _, _ = self.drv_interface.get_state()
         self.traj_t, self.traj_p, self.traj_v = BaseController.compute_trajectory(
             self,
             lower_y=p_meas,
@@ -58,7 +58,7 @@ class PositionController(BaseController):
         p_cmd = None
         v_cmd = None
         tau_cmd = None
-        if time_since_lift_start < self.traj_t[-1]:
+        if self.traj_t is not None and time_since_lift_start < self.traj_t[-1]:
             # Interpolate to get command
             idx_next_lower = utilities.find_idx_next_lower(
                 self.traj_t, time_since_lift_start

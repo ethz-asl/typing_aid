@@ -1,6 +1,6 @@
 import numpy as np
 import rospy
-from std_msgs.msg import Empty
+from std_msgs.msg import String
 import anydrive_typing_aid.utils.utilities as utilities
 
 
@@ -15,6 +15,7 @@ class BaseController:
         self.sampling_time = 1.0 / self.rate_hz
 
         self.controller_start_time = rospy.get_time()
+        self.quit = False
 
         log_strings = [
             "t",
@@ -28,10 +29,18 @@ class BaseController:
             "i_meas",
         ]
         self.log = {log_string: list() for log_string in log_strings}
-        rospy.Subscriber("lift_arm", Empty, self.lifting_callback)
+
+    def subscribe(self):
+        rospy.Subscriber("lift_arm", String, self.lifting_callback_base)
 
     def lifting_callback(self, msg):
         raise NotImplementedError
+
+    def lifting_callback_base(self, msg):
+        if msg.data == "q":
+            self.quit = True
+        else:
+            self.lifting_callback(msg)
 
     def stop(self):
         self.drv_interface.stop_drive()
@@ -111,7 +120,7 @@ class BaseController:
     def step(self):
         state = self.drv_interface.get_state()
         res = self.limit_checking(state)
-        if not res:
+        if not res or self.quit:
             return False
         current_time = rospy.get_time()
 

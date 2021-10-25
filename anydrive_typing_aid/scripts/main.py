@@ -3,13 +3,7 @@
 import os
 import rospy
 
-# from torque_profile import cte_mov
-# from pid import pid
-# from pos_control import pos_mov
-# from imped_pos import Impedance_pos
-# from imped_vel import impedance_vel
-# from friction import Friction
-# from basic_pos_control import Basic_controller
+from std_msgs.msg import String
 
 from anydrive_typing_aid.utils.anydrive_interface import AnydriveInterface
 from anydrive_typing_aid.controllers.position_controller import PositionController
@@ -30,13 +24,18 @@ if __name__ == "__main__":
 
     rate_hz = 150.0
 
-    ctrl = PositionController(drv_interface, rate_hz, save_dir)
-    # ctrl = TorqueController(drv_interface, rate_hz, save_dir)
+    # ctrl = PositionController(drv_interface, rate_hz, save_dir)
+    ctrl = TorqueController(drv_interface, rate_hz, save_dir)
     # ctrl = ImpedanceController(drv_interface, rate_hz, save_dir)
     # ctrl = FrictionController(drv_interface, rate_hz, save_dir)
 
+    ctrl.plot_trajectory()
+
     rate = rospy.Rate(rate_hz)
+    rospy.loginfo("Send first trigger to start...")
+    rospy.wait_for_message("lift_arm", String)
     rospy.loginfo("Starting loop ")
+    ctrl.subscribe()
     try:
         while not rospy.is_shutdown():
             res = ctrl.step()

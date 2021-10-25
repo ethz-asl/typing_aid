@@ -211,13 +211,14 @@ def create_dir(path):
 def save_parameters(controller):
     name = controller.log_time_str + "_" + controller.__class__.__name__ + "_params.txt"
     with open(os.path.join(controller.save_dir, name), "w") as f:
-        f.write(controller.parameters)
+        f.write(str(controller.parameters))
 
 
 def save_log(controller):
     name = controller.log_time_str + "_" + controller.__class__.__name__ + "_log.csv"
     df = pd.DataFrame(controller.log)
     df.to_csv(os.path.join(controller.save_dir, name))
+    rospy.loginfo("Stored data under {}.".format(name))
 
 
 def compute_traj(

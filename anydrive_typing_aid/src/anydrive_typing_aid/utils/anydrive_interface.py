@@ -34,7 +34,6 @@ class AnydriveInterface:
 
     def get_state(self):
         msg = rospy.wait_for_message(self.prefix + "/anydrive/reading", Reading)
-        msg = Reading(msg)
         return (
             msg.state.joint_position,
             msg.state.joint_velocity,

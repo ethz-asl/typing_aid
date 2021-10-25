@@ -1,4 +1,5 @@
 import rospy
+import matplotlib.pyplot as plt
 
 from anydrive_typing_aid.controllers.base_controller import BaseController
 import anydrive_typing_aid.utils.utilities as utilities
@@ -8,14 +9,14 @@ class TorqueController(BaseController):
     def __init__(self, drv_interface, rate_hz, save_dir):
         parameters = {
             "idle_torque": 0.5,
-            "duration_ramp_up": 0.6,
-            "distance_ramp_up": 0.5,
-            "steepness_ramp_up": 0.05,
-            "duration_constant": 0.1,
-            "duration_ramp_down": 0.6,
-            "steepness_ramp_down": 0.05,
+            "duration_ramp_up": 0.7,
+            "distance_ramp_up": 1.2,
+            "steepness_ramp_up": 0.075,
+            "duration_constant": 0.0,
+            "duration_ramp_down": 0.8,
+            "steepness_ramp_down": 0.075,
             "use_depression": True,
-            "distance_depression": -0.2,
+            "distance_depression": -0.4,
             # "pid_p": 2,
             # "pid_i": 0.078,
             # "pid_d": 0.163,
@@ -45,9 +46,14 @@ class TorqueController(BaseController):
 
         rospy.loginfo("Controller initialized")
 
+    def plot_trajectory(self):
+        plt.plot(self.traj_t, self.traj_tau)
+        plt.legend(["torque"])
+        plt.show()
+
     def lifting_callback(self, msg):
-        if self.lift_running:
-            return
+        # if self.lift_running:
+        #     return
         rospy.loginfo("Got triggered")
         self.lift_start_time = rospy.get_time()
         self.lift_running = True

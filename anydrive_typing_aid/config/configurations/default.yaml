@@ -96,7 +96,7 @@ max_motor_velocity:                 680.7
 # Unit                              Nm
 # Range                             > 0.0
 # Default                           Value stored on device.
-max_joint_torque:                   40.0
+max_joint_torque:                   4.0
 
 # Parameter                         current_integrator_saturation
 # Description                       Sets the integrator saturation the current
