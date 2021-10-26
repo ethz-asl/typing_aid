@@ -40,6 +40,7 @@ def talker():
         elif key == enter_key:
             print("")
             sys.stdout.flush()
+            pub.publish(msg)
         elif key == ctrl_c:
             print("\nKeyboard interrupt")
             msg.data = "q"

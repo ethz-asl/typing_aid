@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # ctrl = ImpedanceController(drv_interface, rate_hz, save_dir)
     # ctrl = FrictionController(drv_interface, rate_hz, save_dir)
 
-    ctrl.plot_trajectory()
+    # ctrl.plot_trajectory()
 
     rate = rospy.Rate(rate_hz)
     rospy.loginfo("Send first trigger to start...")
