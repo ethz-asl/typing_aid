@@ -29,6 +29,8 @@ def talker():
 
     settings = termios.tcgetattr(sys.stdin)
 
+    rospy.loginfo("Starting loop. Each keypress will send a trigger. Ctrl-C to quit.")
+
     while not rospy.is_shutdown():
         key = getKey(None, settings)
         if key in listen_for:
