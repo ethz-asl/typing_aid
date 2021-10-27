@@ -8,15 +8,15 @@ import anydrive_typing_aid.utils.utilities as utilities
 class TorqueController(BaseController):
     def __init__(self, drv_interface, rate_hz, save_dir):
         parameters = {
-            "idle_torque": 0.8,
-            "duration_ramp_up": 0.7,
-            "distance_ramp_up": 1.2,
+            "idle_torque": 0.5,
+            "duration_ramp_up": 0.5,
+            "distance_ramp_up": 0.5,
             "steepness_ramp_up": 0.075,
             "duration_constant": 0.1,
             "duration_ramp_down": 0.5,
             "steepness_ramp_down": 0.075,
             "use_depression": True,
-            "distance_depression": -0.3,
+            "distance_depression": -0.5,
             "depression_proportion": 0.5,
             # "pid_p": 2,
             # "pid_i": 0.078,
